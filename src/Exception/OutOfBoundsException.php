@@ -1,6 +1,6 @@
 <?php
 /**
- * Bacon\Pdf
+ * BaconPdf
  *
  * @link      http://github.com/Bacon/BaconPdf For the canonical source repository
  * @copyright 2015 Ben 'DASPRiD' Scholzen

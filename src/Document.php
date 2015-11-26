@@ -1,6 +1,6 @@
 <?php
 /**
- * Bacon\Pdf
+ * BaconPdf
  *
  * @link      http://github.com/Bacon/BaconPdf For the canonical source repository
  * @copyright 2015 Ben 'DASPRiD' Scholzen
@@ -75,7 +75,7 @@ class Document
         $this->pages = $this->objects->addObject($pages);
 
         $info = new DictionaryObject();
-        $info['Producer'] = new LiteralStringObject('Bacon\Pdf');
+        $info['Producer'] = new LiteralStringObject('BaconPdf');
         $this->info = $this->objects->addObject($info);
 
         $root = new DictionaryObject();
