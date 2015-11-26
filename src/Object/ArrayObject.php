@@ -56,7 +56,7 @@ class ArrayObject extends AbstractObject implements IteratorAggregate, Countable
             $index = $size;
         }
 
-        for ($i = $size; --$i >= $index; ) {
+        for ($i = $size; --$i >= $index;) {
             $this->items[$i + 1] = $this->items[$i];
         }
 
