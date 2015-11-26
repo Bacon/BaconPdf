@@ -11,13 +11,14 @@ namespace Bacon\Pdf\Object;
 
 use Bacon\Pdf\Exception\DomainException;
 use Bacon\Pdf\Exception\OutOfBoundsException;
+use Countable;
 use IteratorAggregate;
 use SplObjectStorage;
 
 /**
  * Storage for mapping indirect objects to concrete objects.
  */
-final class ObjectStorage implements IteratorAggregate
+final class ObjectStorage implements IteratorAggregate, Countable
 {
     /**
      * @var ObjectInterface[]
@@ -47,8 +48,9 @@ final class ObjectStorage implements IteratorAggregate
      */
     public function addObject(ObjectInterface $object)
     {
-        $this->objects[] = $object;
-        $this->indirectObjects[$object] = new IndirectObject(++$this->objectCount, 0, $this);
+        $id = ++$this->objectCount;
+        $this->objects[$id] = $object;
+        $this->indirectObjects[$object] = new IndirectObject($id, 0, $this);
     }
 
     /**
@@ -56,8 +58,9 @@ final class ObjectStorage implements IteratorAggregate
      */
     public function reserveSlot()
     {
-        $this->objects[] = null;
-        return ++$this->objectCount;
+        $id = ++$this->objectCount;
+        $this->objects[$id] = null;
+        return $id;
     }
 
     /**
@@ -70,13 +73,13 @@ final class ObjectStorage implements IteratorAggregate
             throw new DomainException('Object storage of indirect object must equal this object storage');
         }
 
-        $index = $indirectObject->getId() - 1;
+        $id = $indirectObject->getId();
 
-        if (!isset($this->objects[$index])) {
+        if (!isset($this->objects[$id])) {
             throw new DomainException(sprintf('No reserved slot for id %d found', $id));
         }
 
-        $this->objects[$index] = $indirectObject;
+        $this->objects[$id] = $indirectObject;
     }
 
     /**
@@ -89,7 +92,7 @@ final class ObjectStorage implements IteratorAggregate
             throw new DomainException('Object storage of indirect object must equal this object storage');
         }
 
-        return $this->objects[$indirectObject->getId() - 1];
+        return $this->objects[$indirectObject->getId()];
     }
 
     /**
@@ -111,12 +114,20 @@ final class ObjectStorage implements IteratorAggregate
      */
     public function getIterator()
     {
-        foreach ($this->objects as $index => $object) {
+        foreach ($this->objects as $id => $object) {
             if (null === $object) {
-                throw new DomainException(sprintf('Object slot for id %d was reserved but not filled', $index + 1));
+                throw new DomainException(sprintf('Object slot for id %d was reserved but not filled', $id));
             }
 
-            yield $index => $object;
+            yield $id => $object;
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function count($mode = 'COUNT_NORMAL')
+    {
+        return $this->objectCount;
     }
 }

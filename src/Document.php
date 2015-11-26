@@ -18,7 +18,9 @@ use Bacon\Pdf\Object\NameObject;
 use Bacon\Pdf\Object\NumericObject;
 use Bacon\Pdf\Object\ObjectInterface;
 use Bacon\Pdf\Object\ObjectStorage;
+use Bacon\Pdf\Object\StreamObject;
 use Bacon\Pdf\Utils\EncryptionUtils;
+use Doctrine\Instantiator\Exception\UnexpectedValueException;
 use SplFileObject;
 use SplObjectStorage;
 
@@ -57,9 +59,14 @@ class Document
     private $encryptionKey;
 
     /**
-     * @var ArrayObject
+     * @var HexadecimalStringObject
      */
-    private $id;
+    private $firstId;
+
+    /**
+     * @var HexadecimalStringObject
+     */
+    private $secondId;
 
     /**
      * Creates a new PDF document.
@@ -83,10 +90,8 @@ class Document
         $root['Pages'] = $this->pages;
         $this->root = $this->objects->addObject($root);
 
-        $this->id = new ArrayObject([
-            new HexadecimalStringObject($this->generateFileIdentifier()),
-            new HexadecimalStringObject($this->generateFileIdentifier()),
-        ]);
+        $this->firstId  = new HexadecimalStringObject($this->generateFileIdentifier());
+        $this->secondId = new HexadecimalStringObject($this->generateFileIdentifier());
     }
 
     /**
@@ -118,18 +123,18 @@ class Document
         if (2 === $revision) {
             list($userEntry, $key) = EncryptionUtils::computeUserEntryRev2(
                 $userPassword,
-                $ownerEntry->getValue(),
+                $ownerEntry,
                 $revision,
-                $this->id->get(0)->getValue()
+                $this->firstId->getValue()
             );
         } else {
             list($userEntry, $key) = EncryptionUtils::computeUserEntryRev3OrGreater(
                 $userPassword,
                 $revision,
                 $keyLength,
-                $ownerEntry->getValue(),
+                $ownerEntry,
                 $permissions,
-                $this->id->get(0)->getValue()
+                $this->firstId->getValue()
             );
         }
 
@@ -158,7 +163,7 @@ class Document
     public function write(SplFileObject $fileObject)
     {
         $this->resolveCircularReferences();
-        $this->writeHeader();
+        $this->writeHeader($fileObject);
 
         $objectOffsets = $this->writeObjects($fileObject);
         $xrefOffset    = $fileObject->ftell();
@@ -210,15 +215,14 @@ class Document
     {
         $externalReferenceMap = new SplObjectStorage();
 
-        foreach ($this->objects as $index => $object) {
-            if (!$object instanceof PageObject || null === $object->getIndirectReference()) {
+        foreach ($this->objects as $id => $object) {
+            if (!$object instanceof Page || null === $object->getIndirectReference()) {
                 continue;
             }
 
             $indirectObject = $object->getIndirectReference();
             $objectStorage  = $indirectObject->getObjectStorage();
             $generation     = $indirectObject->getGeneration();
-            $id             = $indirectObject->getId();
 
             if (!$externalReferenceMap->contains($objectStorage)) {
                 $externalReferenceMap->attach($objectStorage, []);
@@ -228,7 +232,7 @@ class Document
                 $externalReferenceMap[$objectStorage][$generation] = [];
             }
 
-            $externalReferenceMap[$objectStorage][$generation][$id] = new IndirectObject($index + 1, 0, $this);
+            $externalReferenceMap[$objectStorage][$generation][$id] = new IndirectObject($id, 0, $this->objects);
         }
 
         $stack = [];
@@ -247,14 +251,14 @@ class Document
         array &$stack
     ) {
         if ($object instanceof DictionaryObject || $object instanceof ArrayObject) {
-            foreach ($object as $key => $value) {
-                $value = $this->sweepIndirectReferences($externalReferenceMap, $value);
+            foreach ($object as $index => $childObject) {
+                $childObject = $this->sweepIndirectReferences($externalReferenceMap, $childObject, $stack);
 
-                if ($value instanceof StreamObject) {
-                    $value = $this->addObject($value);
+                if ($childObject instanceof StreamObject) {
+                    $childObject = $this->objects->addObject($childObject);
                 }
 
-                $object[$key] = $value;
+                $object[$index] = $childObject;
             }
 
             return $object;
@@ -296,7 +300,17 @@ class Document
             }
 
             $externalReferenceMap[$objectStorage][$generation][$id] = $newIndirectObject;
-            $this->objects->fillSlot($this->sweepIndirectReferences($externalReferenceMap, $newObject, $stack));
+            $sweepedIndirectObject = $this->sweepIndirectReferences($externalReferenceMap, $newObject, $stack);
+
+            if (!$sweepedIndirectObject instanceof IndirectObject) {
+                throw new UnexpectedValueException(sprintf(
+                    'Expected sweeped object to be of type %s, got %s',
+                    IndirectObject::class,
+                    get_class($sweepedIndirectObject)
+                ));
+            }
+
+            $this->objects->fillSlot($sweepedIndirectObject);
 
             return $newIndirectObject;
         }
@@ -377,7 +391,7 @@ class Document
         $trailer['Size'] = new NumericObject(count($this->objects) + 1);
         $trailer['Root'] = $this->root;
         $trailer['Info'] = $this->info;
-        $trailer['Id'] = $this->id;
+        $trailer['Id'] = new ArrayObject([$this->firstId, $this->secondId]);
         $trailer->writeToStream($fileObject);
     }
 

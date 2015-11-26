@@ -79,17 +79,8 @@ class IndirectObject implements ObjectInterface
     /**
      * {@inheritdoc}
      */
-    public function writeToStream(SplFileObject $fileObject)
+    public function writeToStream(SplFileObject $fileObject, $encryptionKey)
     {
         $fileObject->fwrite(sprintf('%d %d R', $this->id, $this->generation));
-    }
-
-    /**
-     * @param  resource $handle
-     * @return self
-     * @throws PdfReadException
-     */
-    public static function readFromStream($handle)
-    {
     }
 }

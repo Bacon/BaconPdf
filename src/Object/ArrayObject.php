@@ -10,12 +10,13 @@
 namespace Bacon\Pdf\Object;
 
 use Bacon\Pdf\Exception\OutOfBoundsException;
+use IteratorAggregate;
 use SplFileObject;
 
 /**
  * Array object as defined by section 3.2.5
  */
-class ArrayObject extends AbstractObject
+class ArrayObject extends AbstractObject implements IteratorAggregate
 {
     /**
      * @var ObjectInterface[]
@@ -23,9 +24,9 @@ class ArrayObject extends AbstractObject
     private $items;
 
     /**
-     * @param array $items
+     * @param ObjectInterface[] $items
      */
-    public function __construct(array $items)
+    public function __construct(array $items = [])
     {
         foreach ($items as $item) {
             $this->append($item);
@@ -59,7 +60,7 @@ class ArrayObject extends AbstractObject
     /**
      * {@inheritdoc}
      */
-    public function writeToStream(SplFileObject $fileObject)
+    public function writeToStream(SplFileObject $fileObject, $encryptionKey)
     {
         $fileObject->fwrite('[');
 
@@ -69,5 +70,15 @@ class ArrayObject extends AbstractObject
         }
 
         $fileObject->fwrite(']');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getIterator()
+    {
+        foreach ($this->items as $index => $item) {
+            yield $index => $item;
+        }
     }
 }

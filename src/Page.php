@@ -11,6 +11,7 @@ namespace Bacon\Pdf;
 
 use Bacon\Pdf\Object\AbstractObject;
 use Bacon\Pdf\Object\DictionaryObject;
+use Bacon\Pdf\Object\IndirectObject;
 use Bacon\Pdf\Object\NameObject;
 use Bacon\Pdf\Object\NullObject;
 use SplFileObject;
@@ -23,6 +24,11 @@ class Page extends AbstractObject
     private $document;
 
     /**
+     * @var IndirectObject
+     */
+    private $indirectReference;
+
+    /**
      * @var DictionaryObject
      */
     private $dictionary;
@@ -32,15 +38,24 @@ class Page extends AbstractObject
      * @param int      $width
      * @param int      $height
      */
-    public function __construct(Document $document, $width, $height)
+    public function __construct(Document $document, IndirectObject $indirectReference, $width, $height)
     {
         $this->document = $document;
+        $this->indirectReference = $indirectReference;
 
         $this->dictionary = new DictionaryObject();
         $this->dictionary['Type'] = new NameObject('Page');
         $this->dictionary['Parent'] = new NullObject();
         $this->dictionary['Resources'] = new DictionaryObject();
         $this->dictionary['MediaBox'] = new RectangleObject(0, 0, $width, $height);
+    }
+
+    /**
+     * @return IndirectObject
+     */
+    public function getIndirectReference()
+    {
+        return $this->indirectReference;
     }
 
     /**

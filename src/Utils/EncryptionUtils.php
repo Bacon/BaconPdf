@@ -91,15 +91,7 @@ final class EncryptionUtils
         $value = self::rc4($key, substr($userPassword . self::ENCRYPTION_PADDING, 0, 32));
 
         if ($revision >= 3) {
-            for ($i = 1; $i <= 19; ++$i) {
-                $newKey = '';
-
-                for ($j = 0; $j < $keyLength; ++$j) {
-                    $newKey = chr(ord($key[$j]) ^ $i);
-                }
-
-                $value = self::rc4($newKey, $value);
-            }
+            $value = self::applyRc4Loop($value, $key, $keyLength);
         }
 
         return $value;
@@ -112,7 +104,7 @@ final class EncryptionUtils
      * @param  string $ownerEntry
      * @param  int    $userPermissionFlags
      * @param  string $idEntry
-     * @return array
+     * @return string[]
      */
     public static function computeUserEntryRev2($userPassword, $ownerEntry, $userPermissionFlags, $idEntry)
     {
@@ -130,8 +122,7 @@ final class EncryptionUtils
      * @param  string $ownerEntry
      * @param  int    $permissions
      * @param  string $idEntry
-     * @param  bool   $encryptMetadata
-     * @return array
+     * @return string[]
      */
     public static function computeUserEntryRev3OrGreater(
         $userPassword,
@@ -143,17 +134,7 @@ final class EncryptionUtils
     ) {
         $key   = self::computeEncryptionKey($userPassword, $revision, $keyLength, $ownerEntry, $permissions, $idEntry);
         $hash  = hex2bin(md5(self::ENCRYPTION_PADDING . $idEntry));
-        $value = self::rc4($key, $hash);
-
-        for ($i = 1; $i <= 19; ++$i) {
-            $newKey = '';
-
-            for ($j = 0; $j < $keyLength; ++$j) {
-                $newKey = chr(ord($key[$j]) ^ $i);
-            }
-
-            $value = self::rc4($newKey, $value);
-        }
+        $value = self::applyRc4Loop(self::rc4($key, $hash), $key, $keyLength);
 
         return [$value . str_repeat("\x00", 16), $key];
     }
@@ -195,5 +176,28 @@ final class EncryptionUtils
         }
 
         return $result;
+    }
+
+    /**
+     * Applies loop RC4 encryption.
+     *
+     * @param  string $value
+     * @param  string $key
+     * @param  int    $keyLength
+     * @return string
+     */
+    private static function applyRc4Loop($value, $key, $keyLength)
+    {
+        for ($i = 1; $i <= 19; ++$i) {
+            $newKey = '';
+
+            for ($j = 0; $j < $keyLength; ++$j) {
+                $newKey = chr(ord($key[$j]) ^ $i);
+            }
+
+            $value = self::rc4($newKey, $value);
+        }
+
+        return $value;
     }
 }

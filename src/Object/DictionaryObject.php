@@ -11,12 +11,13 @@ namespace Bacon\Pdf\Object;
 
 use ArrayAccess;
 use Bacon\Pdf\Exception\InvalidArgumentException;
+use IteratorAggregate;
 use SplFileObject;
 
 /**
  * Dictionary object as defined by section 3.2.6
  */
-class DictionaryObject extends AbstractObject implements ArrayAccess
+class DictionaryObject extends AbstractObject implements ArrayAccess, IteratorAggregate
 {
     /**
      * @var ObjectInterface[]
@@ -26,7 +27,7 @@ class DictionaryObject extends AbstractObject implements ArrayAccess
     /**
      * {@inheritdoc}
      */
-    public function writeToStream(SplFileObject $fileObject)
+    public function writeToStream(SplFileObject $fileObject, $encryptionKey)
     {
         $fileObject->fwrite("<<\n");
 
@@ -76,5 +77,15 @@ class DictionaryObject extends AbstractObject implements ArrayAccess
     public function offsetUnset($offset)
     {
         unset($this->items[$offset]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getIterator()
+    {
+        foreach ($this->items as $index => $item) {
+            yield $index => $item;
+        }
     }
 }
