@@ -32,9 +32,9 @@ class DictionaryObject extends AbstractObject implements ArrayAccess, IteratorAg
         $fileObject->fwrite("<<\n");
 
         foreach ($this->items as $key => $value) {
-            (new NameObject($key))->writeToStream($fileObject);
+            (new NameObject($key))->writeToStream($fileObject, $encryptionKey);
             $fileObject->fwrite(' ');
-            $value->writeToStream($fileObject);
+            $value->writeToStream($fileObject, $encryptionKey);
         }
 
         $fileObject->fwrite('>>');

@@ -54,7 +54,7 @@ class Document
     private $encrypt;
 
     /**
-     * @var string<null
+     * @var string|null
      */
     private $encryptionKey;
 

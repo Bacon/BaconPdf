@@ -39,7 +39,7 @@ class NameObject extends AbstractObject
     /**
      * {@inheritdoc}
      */
-    public function writeToStream(SplFileObject $fileObject)
+    public function writeToStream(SplFileObject $fileObject, $encryptionKey)
     {
         $fileObject->fwrite($this->name);
     }

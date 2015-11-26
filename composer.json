@@ -4,7 +4,7 @@
     "license" : "BSD-2-Clause",
     "homepage": "https://github.com/Bacon/BaconPdf",
     "require": {
-        "php": "^5.5|^7.0"
+        "php": "^5.5.11|^7.0"
     },
     "authors": [
         {
