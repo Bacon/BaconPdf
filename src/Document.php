@@ -392,7 +392,7 @@ class Document
         $trailer['Root'] = $this->root;
         $trailer['Info'] = $this->info;
         $trailer['Id'] = new ArrayObject([$this->firstId, $this->secondId]);
-        $trailer->writeToStream($fileObject);
+        $trailer->writeToStream($fileObject, null);
     }
 
     /**

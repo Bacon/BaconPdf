@@ -28,6 +28,14 @@ class LiteralStringObject extends AbstractObject
     }
 
     /**
+     * @return string
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function writeToStream(SplFileObject $fileObject, $encryptionKey)
