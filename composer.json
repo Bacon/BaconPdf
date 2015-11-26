@@ -1,0 +1,25 @@
+{
+    "name": "bacon/bacon-pdf",
+    "description": "BaconPdf is a powerful PDF library.",
+    "license" : "BSD-2-Clause",
+    "homepage": "https://github.com/Bacon/BaconPdf",
+    "require": {
+        "php": "^5.5|^7.0"
+    },
+    "authors": [
+        {
+            "name": "Ben Scholzen 'DASPRiD'",
+            "email": "mail@dasprids.de",
+            "homepage": "http://www.dasprids.de",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Bacon\\Pdf": "src/"
+        }
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^2.4"
+    }
+}

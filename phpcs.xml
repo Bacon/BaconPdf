@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ruleset name="BaconPdf">
+    <file>./src</file>
+    <rule ref="PSR2"/>
+</ruleset>
+
