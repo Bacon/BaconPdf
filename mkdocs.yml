@@ -1,9 +1,7 @@
 site_name: BaconPdf
 repo_url: https://github.com/Bacon/BaconPdf
 theme: readthedocs
-docs_dir: src
-site_dir: build
+docs_dir: doc
 pages:
     - index.md
     - 'Document metadata': metadata.md
-
