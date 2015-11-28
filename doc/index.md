@@ -7,4 +7,4 @@ issues in the documentation or think that some topic needs more explanations, fe
 
 In cases where the documentation refers to chapters of the PDF specification, those are always for version 1.7. You can
 find a PDF for the reference guide here:
-http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf
+[pdf_reference_1-7.pdf](http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf)
