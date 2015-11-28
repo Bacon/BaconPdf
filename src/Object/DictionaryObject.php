@@ -9,20 +9,29 @@
 
 namespace Bacon\Pdf\Object;
 
-use ArrayAccess;
-use Bacon\Pdf\Exception\InvalidArgumentException;
+use Bacon\Pdf\Exception\OutOfBoundsException;
 use IteratorAggregate;
 use SplFileObject;
 
 /**
  * Dictionary object as defined by section 3.2.6
  */
-class DictionaryObject extends AbstractObject implements ArrayAccess, IteratorAggregate
+class DictionaryObject extends AbstractObject implements IteratorAggregate
 {
     /**
      * @var ObjectInterface[]
      */
-    private $items;
+    private $objects;
+
+    /**
+     * @param ObjectInterface[] $objects
+     */
+    public function __construct(array $objects)
+    {
+        foreach ($objects as $key => $object) {
+            $this->set($key, $object);
+        }
+    }
 
     /**
      * {@inheritdoc}
@@ -41,42 +50,54 @@ class DictionaryObject extends AbstractObject implements ArrayAccess, IteratorAg
     }
 
     /**
-     * {@inheritdoc}
+     * Checks whether an object with a given key eixsts.
+     *
+     * @param  string $key
+     * @return bool
      */
-    public function offsetExists($offset)
+    public function has($key)
     {
-        return isset($this->items[$offset]);
+        return array_key_exists($key, $this->objects);
     }
 
     /**
-     * {@inheritdoc}
+     * Returns an object with the given key.
+     *
+     * @param  string $key
+     * @return ObjectInterface
+     * @throws OutOfBoundsException
      */
-    public function offsetGet($offset)
+    public function get($key)
     {
-        return isset($this->items[$offset]) ? $this->items[$offset] : null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function offsetSet($offset, $value)
-    {
-        if (!$value instanceof ObjectInterface) {
-            throw new InvalidArgumentException(sprintf(
-                'Value must be an instance of type ObjectInterface, %s given',
-                is_object($value) ? get_class($value) : gettype($value)
+        if (!array_key_exists($key, $this->objects)) {
+            throw new OutOfBoundsException(sprintf(
+                'Could not find an object with key %s',
+                $key
             ));
         }
 
-        $this->items[$offset] = $value;
+        return $this->objects[$key];
     }
 
     /**
-     * {@inheritdoc}
+     * Sets an object with the given key.
+     *
+     * @param string          $key
+     * @param ObjectInterface $object
      */
-    public function offsetUnset($offset)
+    public function set($key, ObjectInterface $object)
     {
-        unset($this->items[$offset]);
+        $this->objects[$key] = $object;
+    }
+
+    /**
+     * Removes an object with the given key.
+     *
+     * @param string $key
+     */
+    public function remove($key)
+    {
+        unset($this->objects[$key]);
     }
 
     /**

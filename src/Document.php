@@ -9,24 +9,29 @@
 
 namespace Bacon\Pdf;
 
+use Bacon\Pdf\Exception\UnexpectedValueException;
 use Bacon\Pdf\Object\ArrayObject;
 use Bacon\Pdf\Object\DictionaryObject;
 use Bacon\Pdf\Object\HexadecimalStringObject;
 use Bacon\Pdf\Object\IndirectObject;
-use Bacon\Pdf\Object\LiteralStringObject;
 use Bacon\Pdf\Object\NameObject;
 use Bacon\Pdf\Object\NumericObject;
 use Bacon\Pdf\Object\ObjectInterface;
 use Bacon\Pdf\Object\ObjectStorage;
 use Bacon\Pdf\Object\StreamObject;
+use Bacon\Pdf\Type\DateType;
+use Bacon\Pdf\Type\TextStringType;
 use Bacon\Pdf\Utils\EncryptionUtils;
-use Doctrine\Instantiator\Exception\UnexpectedValueException;
+use DateTimeImmutable;
 use SplFileObject;
 use SplObjectStorage;
 
 class Document
 {
-    const HEADER = '%PDF-1.7';
+    /**
+     * @var string
+     */
+    private $version = '1.7';
 
     /**
      * @var ObjectStorage
@@ -75,23 +80,35 @@ class Document
     {
         $this->objects = new ObjectStorage();
 
-        $pages = new DictionaryObject();
-        $pages['Type'] = new NameObject('Pages');
-        $pages['Count'] = new NumericObject(0);
-        $pages['Kids'] = new ArrayObject();
+        $pages = new DictionaryObject([
+            'Type' => new NameObject('Pages'),
+            'Count' => new NumericObject(0),
+            'Kids' => new ArrayObject(),
+        ]);
         $this->pages = $this->objects->addObject($pages);
 
-        $info = new DictionaryObject();
-        $info['Producer'] = new LiteralStringObject('BaconPdf');
+        $info = new DictionaryObject([
+            'Producer' => new TextStringType('BaconPdf'),
+            'CreationDate' => new DateType(new DateTimeImmutable()),
+        ]);
         $this->info = $this->objects->addObject($info);
 
-        $root = new DictionaryObject();
-        $root['Type'] = new NameObject('Catalog');
-        $root['Pages'] = $this->pages;
+        $root = new DictionaryObject([
+            'Type' => new NameObject('Catalog'),
+            'Pages' => $this->pages,
+        ]);
         $this->root = $this->objects->addObject($root);
 
         $this->firstId  = new HexadecimalStringObject($this->generateFileIdentifier());
         $this->secondId = new HexadecimalStringObject($this->generateFileIdentifier());
+    }
+
+    /**
+     * @return Info
+     */
+    public function getInfo()
+    {
+        return new Info($this->info->getObject());
     }
 
     /**
@@ -184,7 +201,7 @@ class Document
     }
 
     /**
-     * Outputs to document directly.
+     * Outputs the document directly.
      */
     public function output()
     {
@@ -325,7 +342,7 @@ class Document
      */
     private function writeHeader(SplFileObject $fileObject)
     {
-        $fileObject->fwrite(static::HEADER . "\n");
+        $fileObject->fwrite(sprintf("%PDF-%s\n", $this->version));
         $fileObject->fwrite("%\xff\xff\xff\xff\n");
     }
 
