@@ -9,7 +9,7 @@ or retrieve them, you have to obtain the ``Info`` object from your document::
 You can then set or remove metadata with their respective methods::
 
     $info->set('Title', 'My awesome PDF document');
-    $info->remove('Author);
+    $info->remove('Author');
 
 When retrieving metadata, it can happen that these do not exist. Since BaconPdf follows a strict API, it will throw an
 exception when the requested entry does not exist. You are advised to always check for the existence of the entry you
