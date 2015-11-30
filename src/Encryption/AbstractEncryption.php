@@ -197,17 +197,11 @@ abstract class AbstractEncryption implements EncryptionInterface
         restore_error_handler();
 
         if (false === $encodedPassword) {
-            throw new UnsupportedPasswordException(sprintf(
-                'The password "%s" contains non-latin-1 characters',
-                $password
-            ));
+            throw new UnsupportedPasswordException('Password contains non-latin-1 characters');
         }
 
         if (strlen($encodedPassword) > 32) {
-            throw new UnsupportedPasswordException(sprintf(
-                'The password "%s" is longer than 32 characters',
-                $password
-            ));
+            throw new UnsupportedPasswordException('Password is longer than 32 characters');
         }
 
         return $encodedPassword;
