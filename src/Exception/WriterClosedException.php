@@ -9,6 +9,6 @@
 
 namespace Bacon\Pdf\Exception;
 
-class PdfReadException extends \RuntimeException implements ExceptionInterface
+class WriterClosedException extends \RuntimeException implements ExceptionInterface
 {
 }

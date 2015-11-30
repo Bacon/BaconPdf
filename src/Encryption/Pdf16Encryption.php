@@ -9,8 +9,42 @@
 
 namespace Bacon\Pdf\Encryption;
 
+use Bacon\Pdf\Writer\ObjectWriter;
+
 class Pdf16Encryption extends Pdf14Encryption
 {
+    /**
+     * {@inheritdoc}
+     */
+    protected function writeAdditionalEncryptDictionaryEntries(ObjectWriter $objectWriter)
+    {
+        parent::writeAdditionalEncryptDictionaryEntries($objectWriter);
+
+        $objectWriter->writeName('CF');
+        $objectWriter->startDictionary();
+
+        $objectWriter->writeName('StdCF');
+        $objectWriter->startDictionary();
+
+        $objectWriter->writeName('Type');
+        $objectWriter->writeName('CryptFilter');
+
+        $objectWriter->writeName('CFM');
+        $objectWriter->writeName('AESV2');
+
+        $objectWriter->writeName('Length');
+        $objectWriter->writeNumber(128);
+
+        $objectWriter->endDictionary();
+        $objectWriter->endDictionary();
+
+        $objectWriter->writeName('StrF');
+        $objectWriter->writeName('StdCF');
+
+        $objectWriter->writeName('StmF');
+        $objectWriter->writeName('StdCF');
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -35,5 +69,21 @@ class Pdf16Encryption extends Pdf14Encryption
             '',
             $initializationVector
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getRevision()
+    {
+        return 4;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getAlgorithm()
+    {
+        return 4;
     }
 }

@@ -14,6 +14,7 @@ use Bacon\Pdf\Exception\UnexpectedValueException;
 use Bacon\Pdf\Exception\UnsupportedPasswordException;
 use Bacon\Pdf\PdfWriter;
 use Bacon\Pdf\Utils\EncryptionUtils;
+use Bacon\Pdf\Writer\ObjectWriter;
 
 abstract class AbstractEncryption implements EncryptionInterface
 {
@@ -103,44 +104,44 @@ abstract class AbstractEncryption implements EncryptionInterface
     /**
      * {@inheritdoc}
      */
-    public function writeEncryptDictionary(PdfWriter $pdfWriter)
+    public function writeEncryptDictionary(ObjectWriter $objectWriter)
     {
-        $pdfWriter->startDictionary();
+        $objectWriter->startDictionary();
 
-        $pdfWriter->writeName('Filter');
-        $pdfWriter->writeName('Standard');
+        $objectWriter->writeName('Filter');
+        $objectWriter->writeName('Standard');
 
-        $pdfWriter->writeName('V');
-        $pdfWriter->writeNumber($this->getAlgorithm());
+        $objectWriter->writeName('V');
+        $objectWriter->writeNumber($this->getAlgorithm());
 
-        $pdfWriter->writeName('R');
-        $pdfWriter->writeNumber($this->getRevision());
+        $objectWriter->writeName('R');
+        $objectWriter->writeNumber($this->getRevision());
 
-        $pdfWriter->writeName('O');
-        $pdfWriter->writeNumber($this->ownerEntry);
+        $objectWriter->writeName('O');
+        $objectWriter->writeNumber($this->ownerEntry);
 
-        $pdfWriter->writeName('U');
-        $pdfWriter->writeNumber($this->userEntry);
+        $objectWriter->writeName('U');
+        $objectWriter->writeNumber($this->userEntry);
 
-        $pdfWriter->writeName('P');
+        $objectWriter->writeName('P');
 
         if (null === $this->userPermissions) {
-            $pdfWriter->writeNumber(0);
+            $objectWriter->writeNumber(0);
         } else {
-            $pdfWriter->writeNumber($this->userPermissions->toInt($this->getRevision()));
+            $objectWriter->writeNumber($this->userPermissions->toInt($this->getRevision()));
         }
 
-        $this->writeAdditionalEncryptDictionaryEntries($pdfWriter);
+        $this->writeAdditionalEncryptDictionaryEntries($objectWriter);
 
-        $pdfWriter->endDictionary();
+        $objectWriter->endDictionary();
     }
 
     /**
      * Adds additional entries to the encrypt dictionary if required.
      *
-     * @param PdfWriter $pdfWriter
+     * @param ObjectWriter $objectWriter
      */
-    protected function writeAdditionalEncryptDictionaryEntries(PdfWriter $pdfWriter)
+    protected function writeAdditionalEncryptDictionaryEntries(ObjectWriter $objectWriter)
     {
     }
 

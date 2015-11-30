@@ -9,7 +9,7 @@
 
 namespace Bacon\Pdf\Encryption;
 
-use Bacon\Pdf\PdfWriter;
+use Bacon\Pdf\Writer\ObjectWriter;
 
 interface EncryptionInterface
 {
@@ -26,7 +26,7 @@ interface EncryptionInterface
     /**
      * Writes the encrypt dictionary.
      *
-     * @param PdfWriter $pdfWriter
+     * @param ObjectWriter $objectWriter
      */
-    public function writeEncryptDictionary(PdfWriter $pdfWriter);
+    public function writeEncryptDictionary(ObjectWriter $objectWriter);
 }

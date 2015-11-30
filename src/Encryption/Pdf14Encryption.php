@@ -9,15 +9,19 @@
 
 namespace Bacon\Pdf\Encryption;
 
+use Bacon\Pdf\Writer\ObjectWriter;
+
 class Pdf14Encryption extends Pdf11Encryption
 {
     /**
      * {@inheritdoc}
      */
-    protected function writeAdditionalEncryptDictionaryEntries(PdfWriter $pdfWriter)
+    protected function writeAdditionalEncryptDictionaryEntries(ObjectWriter $objectWriter)
     {
-        $pdfWriter->writeName('Length');
-        $pdfWriter->writeNumber(128);
+        parent::writeAdditionalEncryptDictionaryEntries($objectWriter);
+
+        $objectWriter->writeName('Length');
+        $objectWriter->writeNumber(128);
     }
 
     /**
