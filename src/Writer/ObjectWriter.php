@@ -56,6 +56,29 @@ class ObjectWriter
     }
 
     /**
+     * Ensures that the writer is on a blank line.
+     */
+    public function ensureBlankLine()
+    {
+        if ($this->currentLineLength === 0) {
+            return;
+        }
+
+        $this->fileObject->fwrite("\n");
+        $this->currentLineLength = 0;
+    }
+
+    /**
+     * Returns the current position in the file.
+     *
+     * @return int
+     */
+    public function currentOffset()
+    {
+        return $this->fileObject->ftell();
+    }
+
+    /**
      * Starts a dictionary.
      */
     public function startDictionary()
