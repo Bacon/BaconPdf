@@ -19,6 +19,11 @@
             "Bacon\\Pdf\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Bacon\\PdfTest\\": "test/"
+        }
+    },
     "require-dev": {
         "squizlabs/php_codesniffer": "^2.4",
         "phpunit/phpunit": "^4.8|^5.0"
