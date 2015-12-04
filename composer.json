@@ -25,7 +25,11 @@
         }
     },
     "require-dev": {
+        "ext-openssl": "*",
         "squizlabs/php_codesniffer": "^2.4",
         "phpunit/phpunit": "^4.8|^5.0"
+    },
+    "suggest": {
+        "ext-openssl": "Allows using the encryption features"
     }
 }

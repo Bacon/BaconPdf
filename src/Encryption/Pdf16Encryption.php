@@ -50,23 +50,13 @@ class Pdf16Encryption extends Pdf14Encryption
      */
     public function encrypt($plaintext, $objectNumber, $generationNumber)
     {
-        if (function_exists('random_bytes')) {
-            // As of PHP 7
-            $initializationVector = random_bytes(16);
-        } else {
-            $initializationVector = '';
-            mt_srand();
-
-            for ($i = 0; $i < 16; ++$i) {
-                $initializationVector .= chr(mt_rand(0, 255));
-            }
-        }
+        $initializationVector = openssl_random_pseudo_bytes(16);
 
         return $initializationVector . openssl_encrypt(
             $plaintext,
             'aes-128-cbc',
             $this->computeIndividualEncryptionKey($objectNumber, $generationNumber) . "\x73\x41\x6c\x54",
-            '',
+            true,
             $initializationVector
         );
     }

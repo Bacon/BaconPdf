@@ -12,7 +12,7 @@ namespace Bacon\Pdf\Encryption;
 /**
  * Permissions as defined in table 3.20 in section 3.5
  */
-final class Permissions
+class Permissions
 {
     /**
      * @var bool
@@ -85,6 +85,11 @@ final class Permissions
     }
 
     /**
+     * Convert the permissions to am integer bit mask.
+     *
+     * @internal Keep in mind that the bit positions named in the PDF reference are counted from 1, while in here they
+     *           are counted from 0.
+     *
      * @param  int $revision
      * @return int
      */
@@ -93,36 +98,36 @@ final class Permissions
         $flags = 0;
 
         if ($this->mayPrint) {
-            $flags |= 3;
+            $flags |= (1 << 2);
         }
 
         if ($this->mayModify) {
-            $flags |= 4;
+            $flags |= (1 << 3);
         }
 
         if ($this->mayCopy) {
-            $flags |= 5;
+            $flags |= (1 << 4);
         }
 
         if ($this->mayAnnotate) {
-            $flags |= 6;
+            $flags |= (1 << 5);
         }
 
         if ($revision >= 3) {
             if ($this->mayFillInForms) {
-                $flags |= 9;
+                $flags |= (1 << 8);
             }
 
             if ($this->mayExtractForAccessibility) {
-                $flags |= 10;
+                $flags |= (1 << 9);
             }
 
             if ($this->mayAssemble) {
-                $flags |= 11;
+                $flags |= (1 << 10);
             }
 
             if ($this->mayPrintHighResolution) {
-                $flags |= 12;
+                $flags |= (1 << 11);
             }
         }
 

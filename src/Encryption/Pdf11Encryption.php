@@ -19,7 +19,8 @@ class Pdf11Encryption extends AbstractEncryption
         return openssl_encrypt(
             $plaintext,
             'rc4',
-            $this->computeIndividualEncryptionKey($objectNumber, $generationNumber)
+            $this->computeIndividualEncryptionKey($objectNumber, $generationNumber),
+            true
         );
     }
 

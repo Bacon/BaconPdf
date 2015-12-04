@@ -7,18 +7,8 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace Bacon\Pdf\Object;
+namespace Bacon\Pdf\Exception;
 
-/**
- * Array object as defined by section 3.2.5
- */
-abstract class AbstractObject implements ObjectInterface
+class RuntimeException extends \RuntimeException implements ExceptionInterface
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function getObject()
-    {
-        return $this;
-    }
 }

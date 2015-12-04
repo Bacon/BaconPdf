@@ -10,10 +10,9 @@
 namespace Bacon\Pdf\Encryption;
 
 use Bacon\Pdf\Exception\DomainException;
+use Bacon\Pdf\Exception\RuntimeException;
 use Bacon\Pdf\Exception\UnexpectedValueException;
 use Bacon\Pdf\Exception\UnsupportedPasswordException;
-use Bacon\Pdf\PdfWriter;
-use Bacon\Pdf\Utils\EncryptionUtils;
 use Bacon\Pdf\Writer\ObjectWriter;
 
 abstract class AbstractEncryption implements EncryptionInterface
@@ -55,6 +54,12 @@ abstract class AbstractEncryption implements EncryptionInterface
         $ownerPassword = null,
         Permissions $userPermissions = null
     ) {
+        // @codeCoverageIgnoreStart
+        if (!extension_loaded('openssl')) {
+            throw new RuntimeException('The OpenSSL extension is required for encryption');
+        }
+        // @codeCoverageIgnoreEnd
+
         if (null === $ownerPassword) {
             $ownerPassword = $userPassword;
         }
@@ -63,13 +68,15 @@ abstract class AbstractEncryption implements EncryptionInterface
         $encodedOwnerPassword = $this->encodePassword($ownerPassword);
 
         $revision  = $this->getRevision();
-        $keyLength = $this->getKeyLength();
+        $keyLength = $this->getKeyLength() / 8;
 
-        if ($revision < 3 && null !== $userPermissions) {
+        if (null === $userPermissions) {
+            $userPermissions = new Permissions(false, false, false, false, false, false, false, false);
+        } elseif ($revision < 3) {
             throw new DomainException('This encryption does not support permissions');
         }
 
-        if (!in_array($keyLength, [40, 128])) {
+        if (!in_array($keyLength, [40 / 8, 128 / 8])) {
             throw new UnexpectedValueException('Key length must be either 40 or 128');
         }
 
@@ -81,14 +88,14 @@ abstract class AbstractEncryption implements EncryptionInterface
         );
 
         if (2 === $revision) {
-            list($this->userEntry, $this->encryptionKey) = EncryptionUtils::computeUserEntryRev2(
+            list($this->userEntry, $this->encryptionKey) = $this->computeUserEntryRev2(
                 $encodedUserPassword,
                 $this->ownerEntry,
                 $revision,
                 $permanentFileIdentifier
             );
         } else {
-            list($this->userEntry, $this->encryptionKey) = EncryptionUtils::computeUserEntryRev3OrGreater(
+            list($this->userEntry, $this->encryptionKey) = $this->computeUserEntryRev3OrGreater(
                 $encodedUserPassword,
                 $revision,
                 $keyLength,
@@ -118,18 +125,13 @@ abstract class AbstractEncryption implements EncryptionInterface
         $objectWriter->writeNumber($this->getRevision());
 
         $objectWriter->writeName('O');
-        $objectWriter->writeNumber($this->ownerEntry);
+        $objectWriter->writeHexadecimalString($this->ownerEntry);
 
         $objectWriter->writeName('U');
-        $objectWriter->writeNumber($this->userEntry);
+        $objectWriter->writeHexadecimalString($this->userEntry);
 
         $objectWriter->writeName('P');
-
-        if (null === $this->userPermissions) {
-            $objectWriter->writeNumber(0);
-        } else {
-            $objectWriter->writeNumber($this->userPermissions->toInt($this->getRevision()));
-        }
+        $objectWriter->writeNumber($this->userPermissions->toInt($this->getRevision()));
 
         $this->writeAdditionalEncryptDictionaryEntries($objectWriter);
 
@@ -177,11 +179,12 @@ abstract class AbstractEncryption implements EncryptionInterface
      */
     protected function computeIndividualEncryptionKey($objectNumber, $generationNumber)
     {
-        return substr(hex2bin(md5(
+        return substr(md5(
             $this->encryptionKey
             . substr(pack('V', $objectNumber), 0, 3)
-            . substr(pack('V', $generationNumber), 0, 2)
-        )), 0, min(16, strlen($this->encryptionKey) + 5));
+            . substr(pack('V', $generationNumber), 0, 2),
+            true
+        ), 0, min(16, strlen($this->encryptionKey) + 5));
     }
 
     /**
@@ -193,7 +196,8 @@ abstract class AbstractEncryption implements EncryptionInterface
      */
     private function encodePassword($password)
     {
-        set_error_handler(function () {}, E_NOTICE);
+        set_error_handler(function () {
+        }, E_NOTICE);
         $encodedPassword = iconv('UTF-8', 'ISO-8859-1', $password);
         restore_error_handler();
 
@@ -238,11 +242,11 @@ abstract class AbstractEncryption implements EncryptionInterface
             $string .= "\0xff\0xff\0xff\0xff";
         }
 
-        $hash = hex2bin(md5($string));
+        $hash = md5($string, true);
 
         if ($revision >= 3) {
             for ($i = 0; $i < 50; ++$i) {
-                $hash = hex2bin(md5(substr($hash, 0, $keyLength)));
+                $hash = md5(substr($hash, 0, $keyLength), true);
             }
 
             return substr($hash, 0, $keyLength);
@@ -262,11 +266,11 @@ abstract class AbstractEncryption implements EncryptionInterface
      */
     private function computeOwnerEntry($ownerPassword, $userPassword, $revision, $keyLength)
     {
-        $hash = hex2bin(md5(substr($ownerPassword . self::ENCRYPTION_PADDING, 0, 32)));
+        $hash = md5(substr($ownerPassword . self::ENCRYPTION_PADDING, 0, 32), true);
 
         if ($revision >= 3) {
             for ($i = 0; $i < 50; ++$i) {
-                $hash = hex2bin(md5($hash));
+                $hash = md5($hash, true);
             }
 
             $key = substr($hash, 0, $keyLength);
@@ -274,7 +278,7 @@ abstract class AbstractEncryption implements EncryptionInterface
             $key = substr($hash, 0, 5);
         }
 
-        $value = openssl_encrypt(substr($userPassword . self::ENCRYPTION_PADDING, 0, 32), 'rc-4', $key);
+        $value = openssl_encrypt(substr($userPassword . self::ENCRYPTION_PADDING, 0, 32), 'rc4', $key, true);
 
         if ($revision >= 3) {
             $value = self::applyRc4Loop($value, $key, $keyLength);
@@ -289,15 +293,22 @@ abstract class AbstractEncryption implements EncryptionInterface
      * @param  string $userPassword
      * @param  string $ownerEntry
      * @param  int    $userPermissionFlags
-     * @param  string $idEntry
+     * @param  string $permanentFileIdentifier
      * @return string[]
      */
-    private function computeUserEntryRev2($userPassword, $ownerEntry, $userPermissionFlags, $idEntry)
+    private function computeUserEntryRev2($userPassword, $ownerEntry, $userPermissionFlags, $permanentFileIdentifier)
     {
-        $key = self::computeEncryptionKey($userPassword, 2, 5, $ownerEntry, $userPermissionFlags, $idEntry);
+        $key = self::computeEncryptionKey(
+            $userPassword,
+            2,
+            5,
+            $ownerEntry,
+            $userPermissionFlags,
+            $permanentFileIdentifier
+        );
 
         return [
-            openssl_encrypt(self::ENCRYPTION_PADDING, 'rc4', $key),
+            openssl_encrypt(self::ENCRYPTION_PADDING, 'rc4', $key, true),
             $key
         ];
     }
@@ -310,7 +321,7 @@ abstract class AbstractEncryption implements EncryptionInterface
      * @param  int    $keyLength
      * @param  string $ownerEntry
      * @param  int    $permissions
-     * @param  string $idEntry
+     * @param  string $permanentFileIdentifier
      * @return string[]
      */
     private function computeUserEntryRev3OrGreater(
@@ -319,22 +330,20 @@ abstract class AbstractEncryption implements EncryptionInterface
         $keyLength,
         $ownerEntry,
         $permissions,
-        $idEntry
+        $permanentFileIdentifier
     ) {
-        $key   = self::computeEncryptionKey($userPassword, $revision, $keyLength, $ownerEntry, $permissions, $idEntry);
-        $hash  = hex2bin(md5(self::ENCRYPTION_PADDING . $idEntry));
-        $value = self::applyRc4Loop(openssl_encrypt($hash, 'rc4', $key), $key, $keyLength);
+        $key = self::computeEncryptionKey(
+            $userPassword,
+            $revision,
+            $keyLength,
+            $ownerEntry,
+            $permissions,
+            $permanentFileIdentifier
+        );
 
-        if (function_exists('random_bytes')) {
-            // As of PHP 7
-            $value .= random_bytes(16);
-        } else {
-            mt_srand();
-
-            for ($i = 0; $i < 16; ++$i) {
-                $value .= chr(mt_rand(0, 255));
-            }
-        }
+        $hash  = md5(self::ENCRYPTION_PADDING . $permanentFileIdentifier, true);
+        $value = self::applyRc4Loop(openssl_encrypt($hash, 'rc4', $key, true), $key, $keyLength);
+        $value .= openssl_random_pseudo_bytes(16);
 
         return [
             $value,
@@ -356,10 +365,10 @@ abstract class AbstractEncryption implements EncryptionInterface
             $newKey = '';
 
             for ($j = 0; $j < $keyLength; ++$j) {
-                $newKey = chr(ord($key[$j]) ^ $i);
+                $newKey .= chr(ord($key[$j]) ^ $i);
             }
 
-            $value = openssl_encrypt($value, 'rc4', $newKey);
+            $value = openssl_encrypt($value, 'rc4', $newKey, true);
         }
 
         return $value;
