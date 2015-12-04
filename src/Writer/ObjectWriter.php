@@ -182,7 +182,7 @@ class ObjectWriter
             '(' => '\\(',
             ')' => '\\)',
             '\\' => '\\\\',
-        ]), 248, "\\\n") . ')', false, "\\\n");
+        ]), 248, "\\\n") . ')', false);
         $this->requiresWhitespace = false;
     }
 
@@ -193,7 +193,7 @@ class ObjectWriter
      */
     public function writeHexadecimalString($string)
     {
-        $this->writeData('<' . chunk_split(bin2hex($string), 248, "\n") . '>', false, "\n");
+        $this->writeData('<' . chunk_split(bin2hex($string), 248, "\n") . '>', false);
         $this->requiresWhitespace = false;
     }
 

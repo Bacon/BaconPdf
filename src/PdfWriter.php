@@ -10,6 +10,8 @@
 namespace Bacon\Pdf;
 
 use Bacon\Pdf\Encryption\EncryptionInterface;
+use Bacon\Pdf\Encryption\Pdf11Encryption;
+use Bacon\Pdf\Encryption\Pdf14Encryption;
 use Bacon\Pdf\Encryption\Pdf16Encryption;
 use Bacon\Pdf\Encryption\Permissions;
 use Bacon\Pdf\Writer\ObjectWriter;
@@ -48,7 +50,8 @@ class PdfWriter
     private $objectOffsets = [];
 
     /**
-     * @param SplFileObject $fileObject
+     * @param SplFileObject    $fileObject
+     * @param PdfWriterOptions $options
      */
     public function __construct(SplFileObject $fileObject, PdfWriterOptions $options)
     {
@@ -60,8 +63,7 @@ class PdfWriter
         $this->objectWriter->writeRawLine(sprintf("%PDF-%s", $this->options->getVersion()));
         $this->objectWriter->writeRawLine("%\xff\xff\xff\xff");
 
-        $this->permanentFileIdentifier = hex2bin(md5(microtime()));
-        $this->changingFileIdentifierFileIdentifier = $this->permanentFileIdentifier;
+        $this->changingFileIdentifier = $this->permanentFileIdentifier = md5(microtime(), true);
 
         if ($this->options->hasEncryption()) {
             $this->encryption = $this->chooseEncryption(
@@ -92,22 +94,24 @@ class PdfWriter
     /**
      * Creates a PDF writer which writes everything to a file.
      *
-     * @param  string $filename
+     * @param  string           $filename
+     * @param  PdfWriterOptions $options
      * @return static
      */
-    public static function toFile($filename)
+    public static function toFile($filename, PdfWriterOptions $options)
     {
-        return new static(new SplFileObject($filename, 'wb'));
+        return new static(new SplFileObject($filename, 'wb'), $options);
     }
 
     /**
      * Creates a PDF writer which outputs everything to the STDOUT.
      *
+     * @param  PdfWriterOptions $options
      * @return static
      */
-    public static function output()
+    public static function output(PdfWriterOptions $options)
     {
-        return new static(new SplFileObject('php://stdout', 'wb'));
+        return new static(new SplFileObject('php://stdout', 'wb'), $options);
     }
 
     /**
