@@ -7,7 +7,7 @@
  * @license   http://opensource.org/licenses/BSD-2-Clause Simplified BSD License
  */
 
-namespace Bacon\PdfTest\Object;
+namespace Bacon\PdfTest\Encryption;
 
 use Bacon\Pdf\Encryption\Pdf14Encryption;
 use Bacon\Pdf\Encryption\Permissions;

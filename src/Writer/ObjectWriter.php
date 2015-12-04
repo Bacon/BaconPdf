@@ -12,17 +12,23 @@ namespace Bacon\Pdf\Writer;
 use Bacon\Pdf\Exception\InvalidArgumentException;
 use SplFileObject;
 
+/**
+ * Writer responsible for writing objects to a stream.
+ *
+ * While the PDF specification tells that there is a line limit of 255 characters, not even Adobe's own PDF library
+ * respects this limit. We ignore it as well, as it imposes a huge impact on the performance of the writer.
+ *
+ * @internal This is a very performance sensitive class, which is why some code may look duplicated. Before thinking
+ *           about refactoring these parts, take a good look and the supplied benchmarks and verify that your changes
+ *           do not affect the performance in a bad way. Keep in mind that the methods in this writer are called quite
+ *           often.
+ */
 class ObjectWriter
 {
     /**
-     * @var SplFileObject|null
+     * @var SplFileObject
      */
     private $fileObject;
-
-    /**
-     * @var int
-     */
-    private $currentLineLength = 0;
 
     /**
      * @var bool
@@ -38,44 +44,26 @@ class ObjectWriter
     }
 
     /**
-     * Writes raw data line to the stream.
+     * Returns the current position in the file.
      *
-     * This method does not obey the normal line length limit, so you have to take care of that yourself. Note that the
-     * writer may still be on an active line, so take that into account as well.
+     * @return int
+     */
+    public function getCurrentOffset()
+    {
+        return $this->fileObject->ftell();
+    }
+
+    /**
+     * Writes a raw data line to the stream.
+     *
+     * A newline character is appended after the data. Keep in mind that you may still be after a token which requires
+     * a following whitespace, depending on the context you are in.
      *
      * @param string $data
      */
     public function writeRawLine($data)
     {
-        if (null === $this->fileObject) {
-            throw new WriterClosedException('The writer object was closed');
-        }
-
-        $this->fileObject->fwrite($data. "\n");
-        $this->currentLineLength = 0;
-    }
-
-    /**
-     * Ensures that the writer is on a blank line.
-     */
-    public function ensureBlankLine()
-    {
-        if ($this->currentLineLength === 0) {
-            return;
-        }
-
-        $this->fileObject->fwrite("\n");
-        $this->currentLineLength = 0;
-    }
-
-    /**
-     * Returns the current position in the file.
-     *
-     * @return int
-     */
-    public function currentOffset()
-    {
-        return $this->fileObject->ftell();
+        $this->fileObject->fwrite($data . "\n");
     }
 
     /**
@@ -83,7 +71,7 @@ class ObjectWriter
      */
     public function startDictionary()
     {
-        $this->writeData('<<', false);
+        $this->fileObject->fwrite('<<');
         $this->requiresWhitespace = false;
     }
 
@@ -92,7 +80,7 @@ class ObjectWriter
      */
     public function endDictionary()
     {
-        $this->writeData('>>', false);
+        $this->fileObject->fwrite('>>');
         $this->requiresWhitespace = false;
     }
 
@@ -101,7 +89,7 @@ class ObjectWriter
      */
     public function startArray()
     {
-        $this->writeData('[', false);
+        $this->fileObject->fwrite('[');
         $this->requiresWhitespace = false;
     }
 
@@ -110,7 +98,7 @@ class ObjectWriter
      */
     public function endArray()
     {
-        $this->writeData(']', false);
+        $this->fileObject->fwrite(']');
         $this->requiresWhitespace = false;
     }
 
@@ -119,7 +107,12 @@ class ObjectWriter
      */
     public function writeNull()
     {
-        $this->writeData('null', true);
+        if ($this->requiresWhitespace) {
+            $this->fileObject->fwrite(' null');
+        } else {
+            $this->fileObject->fwrite('null');
+        }
+
         $this->requiresWhitespace = true;
     }
 
@@ -130,7 +123,12 @@ class ObjectWriter
      */
     public function writeBoolean($boolean)
     {
-        $this->writeData($boolean ? 'true' : 'false', true);
+        if ($this->requiresWhitespace) {
+            $this->fileObject->fwrite($boolean ? ' true' : ' false');
+        } else {
+            $this->fileObject->fwrite($boolean ? 'true' : 'false');
+        }
+
         $this->requiresWhitespace = true;
     }
 
@@ -142,18 +140,12 @@ class ObjectWriter
      */
     public function writeNumber($number)
     {
-        if (is_int($number)) {
-            $value = (string) $number;
-        } elseif (is_float($number)) {
-            $value = sprintf('%F', $number);
+        if ($this->requiresWhitespace) {
+            $this->fileObject->fwrite(rtrim(sprintf(' %.6F', $number), '0.'));
         } else {
-            throw new InvalidArgumentException(sprintf(
-                'Expected int or float, got %s',
-                gettype($number)
-            ));
+            $this->fileObject->fwrite(rtrim(sprintf('%.6F', $number), '0.'));
         }
 
-        $this->writeData($value, true);
         $this->requiresWhitespace = true;
     }
 
@@ -164,7 +156,7 @@ class ObjectWriter
      */
     public function writeName($name)
     {
-        $this->writeData('/' . $name, false);
+        $this->fileObject->fwrite('/' . $name);
         $this->requiresWhitespace = true;
     }
 
@@ -178,11 +170,7 @@ class ObjectWriter
      */
     public function writeLiteralString($string)
     {
-        $this->writeData('(' . chunk_split(strtr($string, [
-            '(' => '\\(',
-            ')' => '\\)',
-            '\\' => '\\\\',
-        ]), 248, "\\\n") . ')', false);
+        $this->fileObject->fwrite('(' . strtr($string, ['(' => '\\(', ')' => '\\)', '\\' => '\\\\']) . ')');
         $this->requiresWhitespace = false;
     }
 
@@ -193,50 +181,7 @@ class ObjectWriter
      */
     public function writeHexadecimalString($string)
     {
-        $this->writeData('<' . chunk_split(bin2hex($string), 248, "\n") . '>', false);
+        $this->fileObject->fwrite('<' . bin2hex($string) . '>');
         $this->requiresWhitespace = false;
-    }
-
-    /**
-     * Unsets the file object so it can release the file pointer.
-     */
-    public function close()
-    {
-        $this->fileObject = null;
-    }
-
-    /**
-     * Writes data to the stream while obeying the maximum line length of 255 characters.
-     *
-     * If $this->requiresWhitespace is true, it means that the last token requires a whitespace character in case the
-     * next token begins with an alphanumeric character. If that is the case, the callee should set $prependWhitespace
-     * to true, so that a whitespace is appended in that case, which may either be a space or a newline.
-     *
-     * @param string $data
-     * @param bool   $prependWhitespace
-     */
-    private function writeData($data, $prependWhitespace)
-    {
-        if (null === $this->fileObject) {
-            throw new WriterClosedException('The writer object was closed');
-        }
-
-        $dataSize = strlen($data);
-
-        if ($this->requiresWhitespace && $prependWhitespace) {
-            $dataSize += 1;
-        }
-
-        if ($this->currentLineLength + $dataSize >= 255) {
-            $this->fileObject->fwrite("\n");
-            $this->currentLineLength = 0;
-            $this->requiresWhitespace = false;
-            $dataSize -= 1;
-        } elseif ($this->requiresWhitespace && $prependWhitespace) {
-            $this->fileObject->fwrite(' ');
-        }
-
-        $this->fileObject->fwrite($data);
-        $this->currentLineLength += $dataSize;
     }
 }

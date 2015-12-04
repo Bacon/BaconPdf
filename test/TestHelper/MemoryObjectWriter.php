@@ -18,6 +18,14 @@ use SplFileObject;
  */
 class MemoryObjectWriter extends ObjectWriter
 {
+    /**
+     * @var SplFileObject
+     */
+    private $fileObject;
+
+    /**
+     * {@inheritdoc}
+     */
     public function __construct()
     {
         $this->fileObject = new SplFileObject('php://memory', 'w+b');
@@ -29,13 +37,6 @@ class MemoryObjectWriter extends ObjectWriter
     public function writeRawLine($data)
     {
         $this->fileObject->fwrite($data. "\n");
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function ensureBlankLine()
-    {
     }
 
     /**
@@ -126,11 +127,7 @@ class MemoryObjectWriter extends ObjectWriter
      */
     public function writeLiteralString($string)
     {
-        $this->fileObject->fwrite('(' . strtr($string, [
-            '(' => '\\(',
-            ')' => '\\)',
-            '\\' => '\\\\',
-        ]) . ")\n");
+        $this->fileObject->fwrite('(' . strtr($string, ['(' => '\\(', ')' => '\\)', '\\' => '\\\\']) . ")\n");
     }
 
     /**
@@ -139,13 +136,6 @@ class MemoryObjectWriter extends ObjectWriter
     public function writeHexadecimalString($string)
     {
         $this->fileObject->fwrite('<' . bin2hex($string) . ">\n");
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function close()
-    {
     }
 
     /**

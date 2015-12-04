@@ -21,13 +21,15 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Bacon\\PdfBenchmark\\": "benchmark/",
             "Bacon\\PdfTest\\": "test/"
         }
     },
     "require-dev": {
         "ext-openssl": "*",
         "squizlabs/php_codesniffer": "^2.4",
-        "phpunit/phpunit": "^4.8|^5.0"
+        "phpunit/phpunit": "^4.8|^5.0",
+        "athletic/athletic": "^0.1.8"
     },
     "suggest": {
         "ext-openssl": "Allows using the encryption features"

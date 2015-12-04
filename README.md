@@ -12,3 +12,11 @@ PDFs up to version 1.7.
 ## Documentation
 You can find the latest documentation over at Read the Docs:
 https://baconpdf.readthedocs.org/en/latest/
+
+## Running benchmarks
+When doing performance sensitive changes to core classes, make sure to run the benchmarks before and after making your
+changes to ensure that they don't cause a huge impact:
+
+```bash
+php vendor/bin/athletic -p benchmark -b vendor/autoload.php
+```
