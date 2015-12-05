@@ -115,42 +115,19 @@ final class Permissions
      */
     public function toInt($revision)
     {
-        $flags = 0;
-
-        if ($this->mayPrint) {
-            $flags |= (1 << 2);
-        }
-
-        if ($this->mayModify) {
-            $flags |= (1 << 3);
-        }
-
-        if ($this->mayCopy) {
-            $flags |= (1 << 4);
-        }
-
-        if ($this->mayAnnotate) {
-            $flags |= (1 << 5);
-        }
+        $bitMask = new BitMask();
+        $bitMask->set(2, $this->mayPrint);
+        $bitMask->set(3, $this->mayModify);
+        $bitMask->set(4, $this->mayCopy);
+        $bitMask->set(5, $this->mayAnnotate);
 
         if ($revision >= 3) {
-            if ($this->mayFillInForms) {
-                $flags |= (1 << 8);
-            }
-
-            if ($this->mayExtractForAccessibility) {
-                $flags |= (1 << 9);
-            }
-
-            if ($this->mayAssemble) {
-                $flags |= (1 << 10);
-            }
-
-            if ($this->mayPrintHighResolution) {
-                $flags |= (1 << 11);
-            }
+            $bitMask->set(8, $this->mayFillInForms);
+            $bitMask->set(9, $this->mayExtractForAccessibility);
+            $bitMask->set(10, $this->mayAssemble);
+            $bitMask->set(11, $this->mayPrintHighResolution);
         }
 
-        return $flags;
+        return $bitMask->toInt();
     }
 }

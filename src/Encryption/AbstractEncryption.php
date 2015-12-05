@@ -109,11 +109,11 @@ abstract class AbstractEncryption implements EncryptionInterface
     public static function forPdfVersion($pdfVersion, $permanentFileIdentifier, EncryptionOptions $options)
     {
         if (version_compare($pdfVersion, '1.6', '>=')) {
-            $encryptionClassName = 'Pdf16Encryption';
+            $encryptionClassName = Pdf16Encryption::class;
         } elseif (version_compare($pdfVersion, '1.4', '>=')) {
-            $encryptionClassName = 'Pdf14Encryption';
+            $encryptionClassName = Pdf14Encryption::class;
         } else {
-            $encryptionClassName = 'Pdf11Encryption';
+            $encryptionClassName = Pdf11Encryption::class;
         }
 
         return new $encryptionClassName(
