@@ -62,7 +62,7 @@ class PdfWriter
         }
 
         $this->objectWriter = new ObjectWriter($fileObject);
-        $this->objectWriter->writeRawLine(sprintf("%PDF-%s", $this->options->getVersion()));
+        $this->objectWriter->writeRawLine(sprintf("%PDF-%s", $this->options->getPdfVersion()));
         $this->objectWriter->writeRawLine("%\xff\xff\xff\xff");
 
         $this->permanentFileIdentifier = $this->changingFileIdentifier = md5(microtime(), true);
@@ -124,8 +124,7 @@ class PdfWriter
      */
     private function writeXrefTable()
     {
-        $this->objectWriter->ensureBlankLine();
-        $xrefOffset = $this->objectWriter->currentOffset();
+        $xrefOffset = $this->objectWriter->getCurrentOffset();
 
         $this->objectWriter->writeRawLine('xref');
         $this->objectWriter->writeRawLine(sprintf('0 %d', count($this->objectOffsets) + 1));
@@ -143,7 +142,6 @@ class PdfWriter
      */
     private function writeTrailer()
     {
-        $this->objectWriter->ensureBlankLine();
         $this->objectWriter->writeRawLine('trailer');
         $this->objectWriter->startDictionary();
 

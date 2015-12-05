@@ -10,6 +10,7 @@
 namespace Bacon\Pdf\Options;
 
 use Bacon\Pdf\Encryption\AbstractEncryption;
+use Bacon\Pdf\Encryption\EncryptionInterface;
 use Bacon\Pdf\Encryption\NullEncryption;
 use Bacon\Pdf\Exception\DomainException;
 
@@ -60,7 +61,7 @@ final class PdfWriterOptions
 
     /**
      * @param  string $permanentFileIdentifier
-     * @return NullEncryption
+     * @return EncryptionInterface
      */
     public function getEncryption($permanentFileIdentifier)
     {
