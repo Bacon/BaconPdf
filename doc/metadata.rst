@@ -2,21 +2,21 @@ Handling document metadata
 ==========================
 
 PDF documents can hold general information, like the document's title, author and such, also known as metadata. To set
-or retrieve them, you have to obtain the ``Info`` object from your document::
+or retrieve them, you have to obtain the ``DocumentInformation`` object from the PDF writer::
 
-    $info = $document->getInfo();
+    $information = $pdfWriter->getDocumentInformation();
 
 You can then set or remove metadata with their respective methods::
 
-    $info->set('Title', 'My awesome PDF document');
-    $info->remove('Author');
+    $information->set('Title', 'My awesome PDF document');
+    $information->remove('Author');
 
 When retrieving metadata, it can happen that these do not exist. Since BaconPdf follows a strict API, it will throw an
 exception when the requested entry does not exist. You are advised to always check for the existence of the entry you
 want to retrieve before actually retrieving it::
 
-    if ($info->has('Title') {
-        $title = $info->get('Title');
+    if ($information->has('Title') {
+        $title = $information->get('Title');
     } else {
         $title = '';
     }
@@ -25,8 +25,13 @@ Since the ``get()`` method will always return a string, there are two special ca
 retrieved via special methods, namely ``CreationDate`` and ``ModDate``. Even though those entries have their own methods
 for retrieval, checking their existence is still done via the ``has()`` method::
 
-    $creationDate = $info->getCreationDate();
-    $modificationDate = $info->getModificationDate();
+    if ($information->has('CreationDate')) {
+        $creationDate = $information->getCreationDate();
+    }
+
+    if ($information->has('ModDate')) {
+        $modificationDate = $information->getModificationDate();
+    }
 
 While the PDF specification names a list of standard entries in the metadata, it also allows arbitrary entries, thus the
 ``Info`` object does not distinguish between them, except for a few exceptions. Those exceptions are ``CreationDate`` and

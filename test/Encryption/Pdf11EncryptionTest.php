@@ -11,13 +11,12 @@ namespace Bacon\PdfTest\Encryption;
 
 use Bacon\Pdf\Encryption\Pdf11Encryption;
 use Bacon\Pdf\Encryption\Permissions;
-use Bacon\Pdf\Exception\DomainException;
 
 /**
  * @covers \Bacon\Pdf\Encryption\AbstractEncryption
  * @covers \Bacon\Pdf\Encryption\Pdf11Encryption
  */
-class Pdf11EncryptionTest extends AbstractEncryptionTest
+class Pdf11EncryptionTest extends AbstractEncryptionTestCase
 {
     /**
      * {@inheritdoc}
@@ -34,12 +33,6 @@ class Pdf11EncryptionTest extends AbstractEncryptionTest
         ];
     }
 
-    public function testSettingPermissions()
-    {
-        $this->setExpectedException(DomainException::class, 'This encryption does not support permissions');
-        new Pdf11Encryption(md5('test', true), 'bar', null, $this->prophesize(Permissions::class)->reveal());
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -48,7 +41,12 @@ class Pdf11EncryptionTest extends AbstractEncryptionTest
         $ownerPassword = null,
         Permissions $userPermissions = null
     ) {
-        return new Pdf11Encryption(md5('test', true), $userPassword, $ownerPassword, $userPermissions);
+        return new Pdf11Encryption(
+            md5('test', true),
+            $userPassword,
+            $ownerPassword ?: $userPassword,
+            $userPermissions ?: Permissions::allowNothing()
+        );
     }
 
     /**

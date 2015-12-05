@@ -9,10 +9,10 @@
 
 namespace Bacon\Pdf\Encryption;
 
-use Bacon\Pdf\Exception\DomainException;
 use Bacon\Pdf\Exception\RuntimeException;
 use Bacon\Pdf\Exception\UnexpectedValueException;
 use Bacon\Pdf\Exception\UnsupportedPasswordException;
+use Bacon\Pdf\Options\EncryptionOptions;
 use Bacon\Pdf\Writer\ObjectWriter;
 
 abstract class AbstractEncryption implements EncryptionInterface
@@ -42,17 +42,17 @@ abstract class AbstractEncryption implements EncryptionInterface
     private $userPermissions;
 
     /**
-     * @param  string           $permanentFileIdentifier
-     * @param  string           $userPassword
-     * @param  string|null      $ownerPassword
-     * @param  Permissions|null $userPermissions
+     * @param  string      $permanentFileIdentifier
+     * @param  string      $userPassword
+     * @param  string      $ownerPassword
+     * @param  Permissions $userPermissions
      * @throws UnexpectedValueException
      */
     public function __construct(
         $permanentFileIdentifier,
         $userPassword,
-        $ownerPassword = null,
-        Permissions $userPermissions = null
+        $ownerPassword,
+        Permissions $userPermissions
     ) {
         // @codeCoverageIgnoreStart
         if (!extension_loaded('openssl')) {
@@ -60,21 +60,11 @@ abstract class AbstractEncryption implements EncryptionInterface
         }
         // @codeCoverageIgnoreEnd
 
-        if (null === $ownerPassword) {
-            $ownerPassword = $userPassword;
-        }
-
         $encodedUserPassword  = $this->encodePassword($userPassword);
         $encodedOwnerPassword = $this->encodePassword($ownerPassword);
 
         $revision  = $this->getRevision();
         $keyLength = $this->getKeyLength() / 8;
-
-        if (null === $userPermissions) {
-            $userPermissions = new Permissions(false, false, false, false, false, false, false, false);
-        } elseif ($revision < 3) {
-            throw new DomainException('This encryption does not support permissions');
-        }
 
         if (!in_array($keyLength, [40 / 8, 128 / 8])) {
             throw new UnexpectedValueException('Key length must be either 40 or 128');
@@ -109,10 +99,47 @@ abstract class AbstractEncryption implements EncryptionInterface
     }
 
     /**
+     * Returns an encryption fitting for a specific PDF version.
+     *
+     * @param  string            $pdfVersion
+     * @param  string            $permanentFileIdentifier
+     * @param  EncryptionOptions $options
+     * @return EncryptionInterface
+     */
+    public static function forPdfVersion($pdfVersion, $permanentFileIdentifier, EncryptionOptions $options)
+    {
+        if (version_compare($pdfVersion, '1.6', '>=')) {
+            return new Pdf16Encryption(
+                $permanentFileIdentifier,
+                $options->getUserPassword(),
+                $options->getOwnerPassword(),
+                $options->getUserPermissions()
+            );
+        }
+
+        if (version_compare($pdfVersion, '1.4', '>=')) {
+            return new Pdf14Encryption(
+                $permanentFileIdentifier,
+                $options->getUserPassword(),
+                $options->getOwnerPassword(),
+                $options->getUserPermissions()
+            );
+        }
+
+        return new Pdf11Encryption(
+            $permanentFileIdentifier,
+            $options->getUserPassword(),
+            $options->getOwnerPassword(),
+            $options->getUserPermissions()
+        );
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function writeEncryptDictionary(ObjectWriter $objectWriter)
     {
+        $objectWriter->writeName('Encrypt');
         $objectWriter->startDictionary();
 
         $objectWriter->writeName('Filter');
@@ -220,7 +247,7 @@ abstract class AbstractEncryption implements EncryptionInterface
      * @param  int    $keyLength
      * @param  string $ownerEntry
      * @param  int    $permissions
-     * @param  string $idEntry
+     * @param  string $permanentFileIdentifier
      * @param  bool   $encryptMetadata
      * @return string
      */
@@ -230,13 +257,13 @@ abstract class AbstractEncryption implements EncryptionInterface
         $keyLength,
         $ownerEntry,
         $permissions,
-        $idEntry,
+        $permanentFileIdentifier,
         $encryptMetadata = true
     ) {
         $string = substr($password . self::ENCRYPTION_PADDING, 0, 32)
                 . $ownerEntry
                 . pack('V', $permissions)
-                . $idEntry;
+                . $permanentFileIdentifier;
 
         if ($revision >= 4 && $encryptMetadata) {
             $string .= "\0xff\0xff\0xff\0xff";

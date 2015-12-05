@@ -11,6 +11,9 @@ namespace Bacon\Pdf\Encryption;
 
 use Bacon\Pdf\Writer\ObjectWriter;
 
+/**
+ * Encryption for handling PDF version 1.4 and above.
+ */
 class Pdf14Encryption extends Pdf11Encryption
 {
     /**

@@ -20,14 +20,14 @@ class PermissionsTest extends TestCase
 {
     public function testZeroPermissions()
     {
-        $permissions = new Permissions(false, false, false, false, false, false, false, false);
+        $permissions = Permissions::allowNothing();
         $this->assertSame(0, $permissions->toInt(2));
         $this->assertSame(0, $permissions->toInt(3));
     }
 
     public function testFullPermissions()
     {
-        $permissions = new Permissions(true, true, true, true, true, true, true, true);
+        $permissions = Permissions::allowEverything();
         $this->assertSame(60, $permissions->toInt(2));
         $this->assertSame(3900, $permissions->toInt(3));
     }

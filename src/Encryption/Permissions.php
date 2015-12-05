@@ -10,9 +10,9 @@
 namespace Bacon\Pdf\Encryption;
 
 /**
- * Permissions as defined in table 3.20 in section 3.5
+ * Permissions as defined in table 3.20 in section 3.5.
  */
-class Permissions
+final class Permissions
 {
     /**
      * @var bool
@@ -82,6 +82,26 @@ class Permissions
         $this->mayFillInForms             = $mayFillInForms;
         $this->mayExtractForAccessibility = $mayExtractForAccessibility;
         $this->mayAssemble                = $mayAssemble;
+    }
+
+    /**
+     * Creates permissions which allow nothing.
+     *
+     * @return self
+     */
+    public static function allowNothing()
+    {
+        return new self(false, false, false, false, false, false, false, false);
+    }
+
+    /**
+     * Creates permissions which allow everything.
+     *
+     * @return self
+     */
+    public static function allowEverything()
+    {
+        return new self(true, true, true, true, true, true, true, true);
     }
 
     /**

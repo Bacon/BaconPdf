@@ -16,7 +16,7 @@ use Bacon\Pdf\Encryption\Permissions;
  * @covers \Bacon\Pdf\Encryption\AbstractEncryption
  * @covers \Bacon\Pdf\Encryption\Pdf16Encryption
  */
-class Pdf16EncryptionTest extends AbstractEncryptionTest
+class Pdf16EncryptionTest extends AbstractEncryptionTestCase
 {
     /**
      * {@inheritdoc}
@@ -41,7 +41,12 @@ class Pdf16EncryptionTest extends AbstractEncryptionTest
         $ownerPassword = null,
         Permissions $userPermissions = null
     ) {
-        return new Pdf16Encryption(md5('test', true), $userPassword, $ownerPassword, $userPermissions);
+        return new Pdf16Encryption(
+            md5('test', true),
+            $userPassword,
+            $ownerPassword ?: $userPassword,
+            $userPermissions ?: Permissions::allowNothing()
+        );
     }
 
     /**

@@ -9,6 +9,9 @@
 
 namespace Bacon\Pdf\Encryption;
 
+/**
+ * Encryption for handling PDF version 1.1 and above.
+ */
 class Pdf11Encryption extends AbstractEncryption
 {
     /**

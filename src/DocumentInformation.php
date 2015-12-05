@@ -11,27 +11,18 @@ namespace Bacon\Pdf;
 
 use Bacon\Pdf\Exception\DomainException;
 use Bacon\Pdf\Exception\UnexpectedValueException;
-use Bacon\Pdf\Object\DictionaryObject;
 use Bacon\Pdf\Object\LiteralStringObject;
 use Bacon\Pdf\Object\NameObject;
-use Bacon\Pdf\Structure\TextStringType;
 use Bacon\Pdf\Type\DateType;
 use DateTimeImmutable;
+use OutOfBoundsException;
 
-final class Info
+final class DocumentInformation
 {
     /**
-     * @var DictionaryObject
+     * @var array
      */
-    private $dictionary;
-
-    /**
-     * @param DictionaryObject $dictionary
-     */
-    public function __construct(DictionaryObject $dictionary)
-    {
-        $this->dictionary = $dictionary;
-    }
+    private $data = ['Producer' => 'BaconPdf'];
 
     /**
      * Sets an entry in the information dictionary.
@@ -58,11 +49,11 @@ final class Info
                 throw new DomainException('Value for "Trapped" must be either "True", "False" or "Unknown"');
             }
 
-            $this->dictionary->set($key, new NameObject($value));
+            $this->data['Trapped'] = $value;
             return;
         }
 
-        $this->dictionary->set($key, new TextStringType($value));
+        $this->data[$key] = $value;
     }
 
     /**
@@ -72,7 +63,7 @@ final class Info
      */
     public function remove($key)
     {
-        $this->dictionary->remove($key);
+        unset($this->data[$key]);
     }
 
     /**
@@ -83,7 +74,7 @@ final class Info
      */
     public function has($key)
     {
-        return $this->dictionary->has($key);
+        return array_key_exists($key, $this->data);
     }
 
     /**
@@ -95,7 +86,7 @@ final class Info
      * @param  string $key
      * @return string
      * @throws DomainException
-     * @throws UnexpectedValueException
+     * @throws OutOfBoundsException
      */
     public function get($key)
     {
@@ -103,29 +94,11 @@ final class Info
             throw new DomainException('CreationDate and ModDate must be retrieved through their respective methods');
         }
 
-        $object = $this->dictionary->get($key);
-
-        if ('Trapped' === $key) {
-            if (!$object instanceof NameObject) {
-                throw new UnexpectedValueException(sprintf(
-                    'Expected an object of type %s, but got %s',
-                    NameObject::class,
-                    get_class($object)
-                ));
-            }
-
-            return $object->getName();
+        if (!array_key_exists($key, $this->data)) {
+            throw new OutOfBoundsException(sprintf('Entry for key "%s" not found', $key));
         }
 
-        if (!$object instanceof LiteralStringObject) {
-            throw new UnexpectedValueException(sprintf(
-                'Expected an object of type %s, but got %s',
-                LiteralStringObject::class,
-                get_class($object)
-            ));
-        }
-
-        return $object->getValue();
+        return $this->data[$key];
     }
 
     /**
@@ -147,20 +120,14 @@ final class Info
     /**
      * @param  string $key
      * @return DateTimeImmutable
-     * @throws UnexpectedValueException
+     * @throws OutOfBoundsException
      */
     private function retrieveDate($key)
     {
-        $object = $this->dictionary->get($key);
-
-        if (!$object instanceof DateType) {
-            throw new UnexpectedValueException(sprintf(
-                'Expected an object of type %s, but got %s',
-                DateType::class,
-                get_class($object)
-            ));
+        if (!array_key_exists($key, $this->data)) {
+            throw new OutOfBoundsException(sprintf('Entry for key "%s" not found', $key));
         }
 
-        return $object->getDateTime();
+        return $this->data[$key];
     }
 }

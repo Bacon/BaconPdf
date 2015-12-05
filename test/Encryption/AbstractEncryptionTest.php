@@ -10,111 +10,87 @@
 namespace Bacon\PdfTest\Encryption;
 
 use Bacon\Pdf\Encryption\AbstractEncryption;
+use Bacon\Pdf\Encryption\Pdf11Encryption;
+use Bacon\Pdf\Encryption\Pdf14Encryption;
+use Bacon\Pdf\Encryption\Pdf16Encryption;
 use Bacon\Pdf\Encryption\Permissions;
 use Bacon\Pdf\Exception\UnexpectedValueException;
 use Bacon\Pdf\Exception\UnsupportedPasswordException;
-use Bacon\PdfTest\TestHelper\MemoryObjectWriter;
+use Bacon\Pdf\Options\EncryptionOptions;
 use PHPUnit_Framework_TestCase as TestCase;
-use ReflectionClass;
 
 /**
  * @covers \Bacon\Pdf\Encryption\AbstractEncryption
  */
-abstract class AbstractEncryptionTest extends TestCase
+class AbstractEncryptionTest extends TestCase
 {
-    /**
-     * @dataProvider encryptionTestData
-     * @param string      $plaintext
-     * @param string      $userPassword
-     * @param string|null $ownerPassword
-     * @param int         $objectNumber
-     * @param int         $generationNumber
-     */
-    public function testEncrypt(
-        $plaintext,
-        $userPassword,
-        $ownerPassword,
-        $objectNumber,
-        $generationNumber
-    ) {
-        $encryption = $this->createEncryption($userPassword, $ownerPassword);
-
-        $reflectionClass = new ReflectionClass($encryption);
-        $reflectionMethod = $reflectionClass->getMethod('computeIndividualEncryptionKey');
-        $reflectionMethod->setAccessible(true);
-        $key = $reflectionMethod->invoke($encryption, $objectNumber, $generationNumber);
-
-        $encryptedText = $encryption->encrypt($plaintext, $objectNumber, $generationNumber);
-        $decryptedText = $this->decrypt($encryptedText, $key);
-
-        $this->assertSame($plaintext, $decryptedText);
-    }
-
-    public function testWriteEncryptDictionary()
+    public function testForPdfVersion()
     {
-        $encryption = $this->createEncryption('foo', 'bar');
-        $memoryObjectWriter = new MemoryObjectWriter();
-        $encryption->writeEncryptDictionary($memoryObjectWriter);
+        $this->assertInstanceOf(
+            Pdf11Encryption::class,
+            AbstractEncryption::forPdfVersion('1.3', '', new EncryptionOptions(''))
+        );
 
-        $this->assertStringMatchesFormat($this->getExpectedDictionary(), $memoryObjectWriter->getData());
+        $this->assertInstanceOf(
+            Pdf14Encryption::class,
+            AbstractEncryption::forPdfVersion('1.4', '', new EncryptionOptions(''))
+        );
+
+        $this->assertInstanceOf(
+            Pdf14Encryption::class,
+            AbstractEncryption::forPdfVersion('1.5', '', new EncryptionOptions(''))
+        );
+
+        $this->assertInstanceOf(
+            Pdf16Encryption::class,
+            AbstractEncryption::forPdfVersion('1.6', '', new EncryptionOptions(''))
+        );
+
+        $this->assertInstanceOf(
+            Pdf16Encryption::class,
+            AbstractEncryption::forPdfVersion('1.7', '', new EncryptionOptions(''))
+        );
     }
 
     public function testTooLongishUserPassword()
     {
         $this->setExpectedException(UnsupportedPasswordException::class, 'Password is longer than 32 characters');
-        $this->createEncryption(str_repeat('a', 33));
+        $this->getAbstractEncryption()->__construct('', str_repeat('a', 33), '', Permissions::allowNothing());
     }
 
     public function testTooLongishOwnerPassword()
     {
         $this->setExpectedException(UnsupportedPasswordException::class, 'Password is longer than 32 characters');
-        $this->createEncryption('a', str_repeat('a', 33));
+        $this->getAbstractEncryption()->__construct('', '', str_repeat('a', 33), Permissions::allowNothing());
     }
 
     public function testUserPasswordWithInvalidCharacters()
     {
         $this->setExpectedException(UnsupportedPasswordException::class, 'Password contains non-latin-1 characters');
-        $this->createEncryption('Ŧ');
+        $this->getAbstractEncryption()->__construct('', 'Ŧ', '', Permissions::allowNothing());
     }
 
     public function testOwnerPasswordWithInvalidCharacters()
     {
         $this->setExpectedException(UnsupportedPasswordException::class, 'Password contains non-latin-1 characters');
-        $this->createEncryption('a', 'Ŧ');
+        $this->getAbstractEncryption()->__construct('', '', 'Ŧ', Permissions::allowNothing());
     }
 
     public function testAbstractReturnsInvalidKeyLength()
     {
         $this->setExpectedException(UnexpectedValueException::class, 'Key length must be either 40 or 128');
-        $this->getMockForAbstractClass(AbstractEncryption::class, [md5('test', true), 'foo']);
+        $this->getAbstractEncryption(100)->__construct('', '', '', Permissions::allowNothing());
     }
 
     /**
-     * @return array
-     */
-    abstract public function encryptionTestData();
-
-    /**
-     * @param  string           $userPassword
-     * @param  string|null      $ownerPassword
-     * @param  Permissions|null $userPermissions
      * @return AbstractEncryption
      */
-    abstract protected function createEncryption(
-        $userPassword,
-        $ownerPassword = null,
-        Permissions $userPermissions = null
-    );
-
-    /**
-     * @param  string $encryptedText
-     * @param  string $key
-     * @return string
-     */
-    abstract protected function decrypt($encryptedText, $key);
-
-    /**
-     * @return string
-     */
-    abstract protected function getExpectedDictionary();
+    private function getAbstractEncryption($keyLength = 128)
+    {
+        $encryption = $this->getMockForAbstractClass(AbstractEncryption::class, [], '', false);
+        $encryption->expects($this->any())->method('getKeyLength')->willReturn($keyLength);
+        $encryption->expects($this->any())->method('getRevision')->willReturn(2);
+        $encryption->expects($this->any())->method('getAlgorithm')->willReturn(1);
+        return $encryption;
+    }
 }

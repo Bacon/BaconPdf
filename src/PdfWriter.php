@@ -10,10 +10,7 @@
 namespace Bacon\Pdf;
 
 use Bacon\Pdf\Encryption\EncryptionInterface;
-use Bacon\Pdf\Encryption\Pdf11Encryption;
-use Bacon\Pdf\Encryption\Pdf14Encryption;
-use Bacon\Pdf\Encryption\Pdf16Encryption;
-use Bacon\Pdf\Encryption\Permissions;
+use Bacon\Pdf\Options\PdfWriterOptions;
 use Bacon\Pdf\Writer\ObjectWriter;
 use SplFileObject;
 
@@ -40,9 +37,14 @@ class PdfWriter
     private $changingFileIdentifier;
 
     /**
-     * @var EncryptionInterface|null
+     * @var EncryptionInterface
      */
     private $encryption;
+
+    /**
+     * @var DocumentInformation
+     */
+    private $documentInformation;
 
     /**
      * @var array
@@ -53,25 +55,27 @@ class PdfWriter
      * @param SplFileObject    $fileObject
      * @param PdfWriterOptions $options
      */
-    public function __construct(SplFileObject $fileObject, PdfWriterOptions $options)
+    public function __construct(SplFileObject $fileObject, PdfWriterOptions $options = null)
     {
+        if (null === $options) {
+            $options = new PdfWriterOptions();
+        }
+
         $this->objectWriter = new ObjectWriter($fileObject);
-
-        $options->freeze();
-        $this->options = $options;
-
         $this->objectWriter->writeRawLine(sprintf("%PDF-%s", $this->options->getVersion()));
         $this->objectWriter->writeRawLine("%\xff\xff\xff\xff");
 
-        $this->changingFileIdentifier = $this->permanentFileIdentifier = md5(microtime(), true);
+        $this->permanentFileIdentifier = $this->changingFileIdentifier = md5(microtime(), true);
+        $this->encryption = $options->getEncryption($this->permanentFileIdentifier);
+        $this->documentInformation = new DocumentInformation();
+    }
 
-        if ($this->options->hasEncryption()) {
-            $this->encryption = $this->chooseEncryption(
-                $this->options->getUserPassword(),
-                $this->options->getOwnerPassword(),
-                $this->options->getVersion()
-            );
-        }
+    /**
+     * @return DocumentInformation
+     */
+    public function getDocumentInformation()
+    {
+        return $this->documentInformation;
     }
 
     /**
@@ -88,17 +92,16 @@ class PdfWriter
         $xrefOffset = $this->writeXrefTable();
         $this->writeTrailer();
         $this->writeFooter($xrefOffset);
-        $this->objectWriter->close();
     }
 
     /**
      * Creates a PDF writer which writes everything to a file.
      *
-     * @param  string           $filename
-     * @param  PdfWriterOptions $options
+     * @param  string                $filename
+     * @param  PdfWriterOptions|null $options
      * @return static
      */
-    public static function toFile($filename, PdfWriterOptions $options)
+    public static function toFile($filename, PdfWriterOptions $options = null)
     {
         return new static(new SplFileObject($filename, 'wb'), $options);
     }
@@ -106,37 +109,12 @@ class PdfWriter
     /**
      * Creates a PDF writer which outputs everything to the STDOUT.
      *
-     * @param  PdfWriterOptions $options
+     * @param  PdfWriterOptions|null $options
      * @return static
      */
-    public static function output(PdfWriterOptions $options)
+    public static function output(PdfWriterOptions $options = null)
     {
         return new static(new SplFileObject('php://stdout', 'wb'), $options);
-    }
-
-    /**
-     * Choose an encryption algorithm based on the PDF version.
-     *
-     * @param string           $version
-     * @param string           $userPassword
-     * @param string|null      $ownerPassword
-     * @param Permissions|null $userPermissions
-     */
-    private function chooseEncryption(
-        $version,
-        $userPassword,
-        $ownerPassword = null,
-        Permissions $userPermissions = null
-    ) {
-        if (version_compare($version, '1.6', '>=')) {
-            return new Pdf16Encryption($ownerPassword, $userPassword, $version, $userPermissions);
-        }
-
-        if (version_compare($version, '1.4', '>=')) {
-            return new Pdf14Encryption($ownerPassword, $userPassword, $version, $userPermissions);
-        }
-
-        return new Pdf11Encryption($ownerPassword, $userPassword, $version, $userPermissions);
     }
 
     /**
@@ -175,10 +153,7 @@ class PdfWriter
         $this->objectWriter->writeHexadecimalString($this->changingFileIdentifier);
         $this->objectWriter->endArray();
 
-        if (null !== $this->encryption) {
-            $this->objectWriter->writeName('Encrypt');
-            $this->encryption->writeEncryptDictionary($this->objectWriter);
-        }
+        $this->encryption->writeEncryptDictionary($this->objectWriter);
 
         $this->objectWriter->endDictionary();
     }
