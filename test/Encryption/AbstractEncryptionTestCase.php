@@ -48,13 +48,13 @@ abstract class AbstractEncryptionTestCase extends TestCase
         $this->assertSame($plaintext, $decryptedText);
     }
 
-    public function testWriteEncryptDictionary()
+    public function testWriteEncryptEntry()
     {
         $encryption = $this->createEncryption('foo', 'bar');
         $memoryObjectWriter = new MemoryObjectWriter();
-        $encryption->writeEncryptDictionary($memoryObjectWriter);
+        $encryption->writeEncryptEntry($memoryObjectWriter);
 
-        $this->assertStringMatchesFormat($this->getExpectedDictionary(), $memoryObjectWriter->getData());
+        $this->assertStringMatchesFormat($this->getExpectedEntry(), $memoryObjectWriter->getData());
     }
 
     /**
@@ -84,5 +84,5 @@ abstract class AbstractEncryptionTestCase extends TestCase
     /**
      * @return string
      */
-    abstract protected function getExpectedDictionary();
+    abstract protected function getExpectedEntry();
 }

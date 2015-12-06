@@ -10,10 +10,8 @@
 namespace Bacon\Pdf;
 
 use Bacon\Pdf\Exception\DomainException;
-use Bacon\Pdf\Exception\UnexpectedValueException;
-use Bacon\Pdf\Object\LiteralStringObject;
-use Bacon\Pdf\Object\NameObject;
-use Bacon\Pdf\Type\DateType;
+use Bacon\Pdf\Utils\StringUtils;
+use Bacon\Pdf\Writer\ObjectWriter;
 use DateTimeImmutable;
 use OutOfBoundsException;
 
@@ -115,6 +113,37 @@ final class DocumentInformation
     public function getModificationDate()
     {
         return $this->retrieveDate('ModDate');
+    }
+
+    /**
+     * Writes the info dictionary.
+     *
+     * @param ObjectWriter $objectWriter
+     * @internal
+     */
+    public function writeInfoDictionary(ObjectWriter $objectWriter)
+    {
+        $objectWriter->startDictionary();
+
+        foreach ($this->data as $key => $value) {
+            $objectWriter->writeName($key);
+
+            switch ($key) {
+                case 'CreationDate':
+                case 'ModDate':
+                    $objectWriter->writeLiteralString(StringUtils::formatDateTime($value));
+                    break;
+
+                case 'Trapped':
+                    $objectWriter->writeName($value);
+                    break;
+
+                default:
+                    $objectWriter->writeLiteralString(StringUtils::encodeString($value));
+            }
+        }
+
+        $objectWriter->endDictionary();
     }
 
     /**

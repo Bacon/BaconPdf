@@ -11,45 +11,32 @@ namespace Bacon\Pdf;
 
 use Bacon\Pdf\Encryption\EncryptionInterface;
 use Bacon\Pdf\Options\PdfWriterOptions;
+use Bacon\Pdf\Writer\DocumentWriter;
 use Bacon\Pdf\Writer\ObjectWriter;
+use Bacon\Pdf\Writer\PageWriter;
 use SplFileObject;
 
 class PdfWriter
 {
-    /**
-     * @var ObjectWriter
-     */
-    private $objectWriter;
-
     /**
      * @var PdfWriterOptions
      */
     private $options;
 
     /**
-     * @var string
+     * @var ObjectWriter
      */
-    private $permanentFileIdentifier;
+    private $objectWriter;
 
     /**
-     * @var string
+     * @var DocumentWriter
      */
-    private $changingFileIdentifier;
+    private $documentWriter;
 
     /**
      * @var EncryptionInterface
      */
     private $encryption;
-
-    /**
-     * @var DocumentInformation
-     */
-    private $documentInformation;
-
-    /**
-     * @var array
-     */
-    private $objectOffsets = [];
 
     /**
      * @param SplFileObject    $fileObject
@@ -61,25 +48,41 @@ class PdfWriter
             $options = new PdfWriterOptions();
         }
 
-        $this->objectWriter = new ObjectWriter($fileObject);
-        $this->objectWriter->writeRawLine(sprintf("%PDF-%s", $this->options->getPdfVersion()));
-        $this->objectWriter->writeRawLine("%\xff\xff\xff\xff");
+        $this->options = $options;
 
-        $this->permanentFileIdentifier = $this->changingFileIdentifier = md5(microtime(), true);
-        $this->encryption = $options->getEncryption($this->permanentFileIdentifier);
-        $this->documentInformation = new DocumentInformation();
+        $fileIdentifier = md5(microtime(), true);
+        $this->objectWriter = new ObjectWriter($fileObject);
+        $this->documentWriter = new DocumentWriter($this->objectWriter, $options, $fileIdentifier);
+        $this->encryption = $options->getEncryption($fileIdentifier);
     }
 
     /**
+     * Returns the document information object.
+     *
      * @return DocumentInformation
      */
     public function getDocumentInformation()
     {
-        return $this->documentInformation;
+        return $this->documentWriter->getDocumentInformation();
     }
 
     /**
-     * Closes the document by writing the file trailer.
+     * Adds a page to the document.
+     *
+     * @param  float $width
+     * @param  float $height
+     * @return Page
+     */
+    public function addPage($width, $height)
+    {
+        $pageWriter = new PageWriter($this->objectWriter);
+        $this->documentWriter->addPageWriter($pageWriter);
+
+        return new Page($pageWriter, $width, $height);
+    }
+
+    /**
+     * Ends the document by writing all pending data.
      *
      * While the PDF writer will remove all references to the passed in file object in itself to avoid further writing
      * and to allow the file pointer to be closed, the callee may still have a reference to it. If that is the case,
@@ -87,11 +90,9 @@ class PdfWriter
      *
      * Any further attempts to append data to the PDF writer will result in an exception.
      */
-    public function closeDocument()
+    public function endDocument()
     {
-        $xrefOffset = $this->writeXrefTable();
-        $this->writeTrailer();
-        $this->writeFooter($xrefOffset);
+        $this->documentWriter->endDocument($this->encryption);
     }
 
     /**
@@ -109,63 +110,13 @@ class PdfWriter
     /**
      * Creates a PDF writer which outputs everything to the STDOUT.
      *
+     * Make sure to send the appropriate headers beforehand if you are in a web environment.
+     *
      * @param  PdfWriterOptions|null $options
      * @return static
      */
     public static function output(PdfWriterOptions $options = null)
     {
         return new static(new SplFileObject('php://stdout', 'wb'), $options);
-    }
-
-    /**
-     * Writes the xref table.
-     *
-     * @return int
-     */
-    private function writeXrefTable()
-    {
-        $xrefOffset = $this->objectWriter->getCurrentOffset();
-
-        $this->objectWriter->writeRawLine('xref');
-        $this->objectWriter->writeRawLine(sprintf('0 %d', count($this->objectOffsets) + 1));
-        $this->objectWriter->writeRawLine(sprintf('%010d %05d f ', 0, 65535));
-
-        foreach ($this->objectOffsets as $offset) {
-            $this->objectWriter->writeRawLine(sprintf('%010d %05d n ', $offset, 0));
-        }
-
-        return $xrefOffset;
-    }
-
-    /**
-     * Writes the trailer.
-     */
-    private function writeTrailer()
-    {
-        $this->objectWriter->writeRawLine('trailer');
-        $this->objectWriter->startDictionary();
-
-        $this->objectWriter->writeName('Id');
-        $this->objectWriter->startArray();
-        $this->objectWriter->writeHexadecimalString($this->permanentFileIdentifier);
-        $this->objectWriter->writeHexadecimalString($this->changingFileIdentifier);
-        $this->objectWriter->endArray();
-
-        $this->encryption->writeEncryptDictionary($this->objectWriter);
-
-        $this->objectWriter->endDictionary();
-    }
-
-    /**
-     * Writes the footer.
-     *
-     * @param int $xrefOffset
-     */
-    private function writeFooter($xrefOffset)
-    {
-        $this->objectWriter->ensureBlankLine();
-        $this->objectWriter->writeRawLine('startxref');
-        $this->objectWriter->writeRawLine((string) $xrefOffset);
-        $this->objectWriter->writeRawLine("%%%EOF");
     }
 }

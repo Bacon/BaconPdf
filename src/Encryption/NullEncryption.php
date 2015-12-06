@@ -27,7 +27,7 @@ final class NullEncryption implements EncryptionInterface
     /**
      * {@inheritdoc}
      */
-    public function writeEncryptDictionary(ObjectWriter $objectWriter)
+    public function writeEncryptEntry(ObjectWriter $objectWriter)
     {
     }
 }

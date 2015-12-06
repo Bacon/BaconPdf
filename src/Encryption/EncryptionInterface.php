@@ -24,9 +24,9 @@ interface EncryptionInterface
     public function encrypt($plaintext, $objectNumber, $generationNumber);
 
     /**
-     * Writes the encrypt dictionary prefixed by the "/Encrypt" string.
+     * Writes the encrypt dictionary prefixed by the "/Encrypt" name.
      *
      * @param ObjectWriter $objectWriter
      */
-    public function writeEncryptDictionary(ObjectWriter $objectWriter);
+    public function writeEncryptEntry(ObjectWriter $objectWriter);
 }

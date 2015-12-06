@@ -107,8 +107,8 @@ final class Permissions
     /**
      * Convert the permissions to am integer bit mask.
      *
-     * @internal Keep in mind that the bit positions named in the PDF reference are counted from 1, while in here they
-     *           are counted from 0.
+     * {@internal Keep in mind that the bit positions named in the PDF reference are counted from 1, while in here they
+     * are counted from 0.}}
      *
      * @param  int $revision
      * @return int

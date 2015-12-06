@@ -60,8 +60,8 @@ class Pdf14EncryptionTest extends AbstractEncryptionTestCase
     /**
      * {@inheritdoc}
      */
-    protected function getExpectedDictionary()
+    protected function getExpectedEntry()
     {
-        return file_get_contents(__DIR__ . '/_files/pdf14-encrypt-dictionary.txt');
+        return file_get_contents(__DIR__ . '/_files/pdf14-encrypt-entry.txt');
     }
 }

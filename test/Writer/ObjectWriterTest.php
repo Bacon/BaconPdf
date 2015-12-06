@@ -44,6 +44,47 @@ class ObjectWriterTest extends TestCase
         $this->assertSame(3, $this->objectWriter->getCurrentOffset());
     }
 
+    public function testObjectNumberAllocation()
+    {
+        $this->assertSame(1, $this->objectWriter->allocateObjectId());
+        $this->assertSame(2, $this->objectWriter->allocateObjectId());
+        $this->assertSame(3, $this->objectWriter->allocateObjectId());
+    }
+
+    public function testGetObjectOffsets()
+    {
+        $this->objectWriter->startObject();
+        $this->objectWriter->startObject();
+        $this->objectWriter->startObject();
+
+        $this->assertSame([1 => 0, 2 => 8, 3 => 16], $this->objectWriter->getObjectOffsets());
+    }
+
+    public function testStartObjectWithoutObjectId()
+    {
+        $this->objectWriter->startObject();
+        $this->objectWriter->startObject();
+        $this->assertSame("1 0 obj\n2 0 obj\n", $this->getFileObjectData());
+    }
+
+    public function testStartObjectWithObjectId()
+    {
+        $this->objectWriter->startObject(10);
+        $this->assertSame("10 0 obj\n", $this->getFileObjectData());
+    }
+
+    public function testWriteIndirectReference()
+    {
+        $this->objectWriter->writeIndirectReference(1);
+        $this->assertSame('1 0 R', $this->getFileObjectData());
+    }
+
+    public function testEndObject()
+    {
+        $this->objectWriter->endObject();
+        $this->assertSame("\nendobj\n", $this->getFileObjectData());
+    }
+
     public function testWriteRawLine()
     {
         $this->objectWriter->writeRawLine('foo');
@@ -94,14 +135,20 @@ class ObjectWriterTest extends TestCase
 
     public function testWriteIntegerNumber()
     {
+        $this->objectWriter->writeNumber(0);
+        $this->assertSame('0', $this->getFileObjectData());
         $this->objectWriter->writeNumber(12);
-        $this->assertSame('12', $this->getFileObjectData());
+        $this->assertSame('0 12', $this->getFileObjectData());
+        $this->objectWriter->writeNumber(0);
+        $this->assertSame('0 12 0', $this->getFileObjectData());
     }
 
     public function testWriteFloatNumber()
     {
         $this->objectWriter->writeNumber(12.3456789123);
         $this->assertSame('12.345679', $this->getFileObjectData());
+        $this->objectWriter->writeNumber(12.);
+        $this->assertSame('12.345679 12', $this->getFileObjectData());
     }
 
     public function testWriteName()
@@ -145,6 +192,10 @@ class ObjectWriterTest extends TestCase
     {
         return [
             [[
+                ['writeIndirectReference', [1]],
+                ['writeIndirectReference', [2]],
+            ], '1 0 R 2 0 R'],
+            [[
                 ['startDictionary'],
                 ['endDictionary'],
             ], '<<>>'],
@@ -174,6 +225,10 @@ class ObjectWriterTest extends TestCase
                 ['writeNumber', [1]],
                 ['writeNumber', [1.1]],
             ], '1 1.1'],
+            [[
+                ['writeNumber', [0]],
+                ['writeNumber', [0.0]],
+            ], '0 0'],
             [[
                 ['writeLiteralString', ['foo']],
                 ['writeLiteralString', ['bar']],

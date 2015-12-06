@@ -127,7 +127,7 @@ abstract class AbstractEncryption implements EncryptionInterface
     /**
      * {@inheritdoc}
      */
-    public function writeEncryptDictionary(ObjectWriter $objectWriter)
+    public function writeEncryptEntry(ObjectWriter $objectWriter)
     {
         $objectWriter->writeName('Encrypt');
         $objectWriter->startDictionary();

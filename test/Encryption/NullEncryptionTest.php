@@ -24,11 +24,11 @@ class NullEncryptionTest extends TestCase
         $this->assertSame('foo', $encryption->encrypt('foo', 1, 1));
     }
 
-    public function writeEncryptDictionaryWritesNothing()
+    public function testWriteEncryptEntryWritesNothing()
     {
         $encryption = new NullEncryption();
         $objectWriter = new MemoryObjectWriter();
-        $encryption->writeEncryptDictionary($objectWriter);
-        $this->assertSame('', $writer->getData());
+        $encryption->writeEncryptEntry($objectWriter);
+        $this->assertSame('', $objectWriter->getData());
     }
 }
