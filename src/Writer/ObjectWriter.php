@@ -77,6 +77,16 @@ class ObjectWriter
     }
 
     /**
+     * Writes raw data to the stream.
+     *
+     * @param string $data
+     */
+    public function writeRaw($data)
+    {
+        $this->fileObject->fwrite($data);
+    }
+
+    /**
      * Returns all object offsets.
      *
      * @return int
@@ -122,6 +132,19 @@ class ObjectWriter
     public function endObject()
     {
         $this->fileObject->fwrite("\nendobj\n");
+    }
+
+    /**
+     * Starts a stream.
+     */
+    public function startStream()
+    {
+        $this->fileObject->fwrite("stream\n");
+    }
+
+    public function endStream()
+    {
+        $this->fileObject->fwrite("\nendstream\n");
     }
 
     /**

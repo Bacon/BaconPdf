@@ -82,6 +82,25 @@ class PdfWriter
     }
 
     /**
+     * Imports a raster image into the document.
+     *
+     * @param  strings $filename
+     * @param  bool    $useLossyCompression
+     * @param  int     $compressionQuality
+     * @return Image
+     */
+    public function importRasterImage($filename, $useLossyCompression = false, $compressionQuality = 80)
+    {
+        return new RasterImage(
+            $this->objectWriter,
+            $filename,
+            $this->options->getPdfVersion(),
+            $useLossyCompression,
+            $compressionQuality
+        );
+    }
+
+    /**
      * Ends the document by writing all pending data.
      *
      * While the PDF writer will remove all references to the passed in file object in itself to avoid further writing
